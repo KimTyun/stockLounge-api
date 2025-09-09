@@ -5,16 +5,13 @@ const { sequelize } = require('./models')
 const fs = require('fs')
 const dotenv = require('dotenv')
 
-// 임시로 만든 거니 나중에 싹 다 갈아엎어도 됩니다.
-
-// DB 연결 모듈 불러오기 (연결 상태 확인 목적)
-const db = require('./config/db')
-
-// 환경 변수 설정
 dotenv.config()
 
+// DB 연결 모듈 불러오기 (연결 상태 확인 목적)
+// const db = require('./config/db') // 사용하지 않으면 주석 처리
+
 const app = express()
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 8000
 
 // 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
 sequelize
@@ -24,6 +21,7 @@ sequelize
    })
    .catch((error) => {
       console.error('DB 연결 실패:', error)
+      process.exit(1) // DB 연결 실패 시 서버 종료
    })
 
 // uploads 폴더가 없을 경우 새로 생성
@@ -34,27 +32,37 @@ try {
    fs.mkdirSync('uploads') //폴더 생성
 }
 
-// 미들웨어 설정
-app.use(express.json()) // JSON 형식의 요청 본문 파싱
-app.use(express.urlencoded({ extended: false })) // URL-encoded 형식 파싱
-app.use(cookieParser()) // 쿠키 파싱
-app.use(
-   cors({
-      origin: 'http://localhost:5173', // 프론트엔드 URL
-      credentials: true, // 쿠키를 포함한 요청 허용
+// 404 에러 핸들링 (라우트를 찾을 수 없을 때)
+app.use((req, res, next) => {
+   res.status(404).json({
+      success: false,
+      message: `경로를 찾을 수 없습니다: ${req.originalUrl}`,
    })
-)
+})
 
-// 라우팅 설정
-// Oauth 인증 관련 라우터
-const authRoutes = require('./routes/auth.routes')
-app.use('/api/auth', authRoutes)
+// 전역 에러 핸들링 미들웨어
+app.use((err, req, res, next) => {
+   const statusCode = err.status || err.statusCode || 500
+   const errorMessage = err.message || '서버 내부 오류'
 
-// 관리자 관련 라우터
-// const adminRoutes = require('./routes/admin.routes');
-// app.use('/api/admin', adminRoutes);
+   if (process.env.NODE_ENV === 'development') {
+      console.error('에러 발생:', err)
+      return res.status(statusCode).json({
+         success: false,
+         message: errorMessage,
+         error: err,
+      })
+   }
+
+   res.status(statusCode).json({
+      success: false,
+      message: statusCode === 500 ? '서버 내부 오류가 발생했습니다.' : errorMessage,
+   })
+})
 
 // 서버 실행
 app.listen(PORT, () => {
-   console.log(`http://localhost:${PORT} 실행 중`)
+   console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`)
+   console.log(`환경: ${process.env.NODE_ENV || 'development'}`)
+   console.log(`CORS 허용 주소: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`)
 })

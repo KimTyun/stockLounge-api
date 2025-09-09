@@ -58,7 +58,7 @@ module.exports = class Board extends Sequelize.Model {
       })
 
       db.Board.belongsTo(db.Category, {
-         foreignKey: 'board_id',
+         foreignKey: 'category',
          targetKey: 'id',
       })
    }
