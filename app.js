@@ -2,17 +2,13 @@ const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const dotenv = require('dotenv')
-
-// 임시로 만든 거니 나중에 싹 다 갈아엎어도 됩니다.
-
-// DB 연결 모듈 불러오기 (연결 상태 확인 목적)
-const db = require('./config/db')
-
-// 환경 변수 설정
 dotenv.config()
 
+// DB 연결 모듈 불러오기 (연결 상태 확인 목적)
+// const db = require('./config/db')
+
 const app = express()
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 3000
 
 // 미들웨어 설정
 app.use(express.json()) // JSON 형식의 요청 본문 파싱
@@ -24,15 +20,38 @@ app.use(
       credentials: true, // 쿠키를 포함한 요청 허용
    })
 )
+// 라우터 가져오기
+const naverNewsRouter = require('./routes/news.js')
 
-// 라우팅 설정
-// Oauth 인증 관련 라우터
-const authRoutes = require('./routes/auth.routes')
-app.use('/api/auth', authRoutes)
+// 라우터 연결
+app.use('/news', naverNewsRouter)
 
-// 관리자 관련 라우터
-// const adminRoutes = require('./routes/admin.routes');
-// app.use('/api/admin', adminRoutes);
+app.get('/', (req, res) => {
+   res.send('서버실행중')
+})
+
+// 에러 미들웨어
+app.use((err, req, res, next) => {
+   const statusCode = err.status || 500
+   const errorMessage = err.message || '서버 내부 오류'
+   if (process.env.NODE_ENV === 'development') {
+      return res.status(statusCode).json({
+         success: false,
+         message: errorMessage,
+         stack: err.stack, // 스택 트레이스 추가
+         error: err,
+      })
+   }
+   if (process.env.NODE_ENV === 'development') {
+      console.log(err)
+   }
+
+   res.status(statusCode).json({
+      success: false,
+      message: errorMessage,
+      error: err,
+   })
+})
 
 // 서버 실행
 app.listen(PORT, () => {
