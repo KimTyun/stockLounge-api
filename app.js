@@ -1,6 +1,8 @@
 const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
+const { sequelize } = require('./models')
+const fs = require('fs')
 const dotenv = require('dotenv')
 
 // 임시로 만든 거니 나중에 싹 다 갈아엎어도 됩니다.
@@ -13,6 +15,22 @@ dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 4000
+
+// 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
+sequelize
+   .sync({ force: false, alter: false })
+   .then(() => {
+      console.log('DB 연결 및 모델 동기화 완료')
+   })
+   .catch(console.error)
+
+// uploads 폴더가 없을 경우 새로 생성
+try {
+   fs.readdirSync('uploads') //해당 폴더가 있는지 확인
+} catch (error) {
+   console.log('uploads 폴더가 없어 uploads 폴더를 생성합니다.')
+   fs.mkdirSync('uploads') //폴더 생성
+}
 
 // 미들웨어 설정
 app.use(express.json()) // JSON 형식의 요청 본문 파싱
