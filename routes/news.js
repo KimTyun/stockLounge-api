@@ -30,7 +30,7 @@ router.get('/crypto', async (req, res, next) => {
 
 router.get('/economy', async (req, res, next) => {
    try {
-      const { length } = req.params
+      const { length } = req.query
       const newsData = await naverApi.get('', { params: { query: '경제', sort: 'date', display: length } })
       res.json({
          success: true,
