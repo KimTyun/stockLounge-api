@@ -22,7 +22,9 @@ sequelize
    .then(() => {
       console.log('DB 연결 및 모델 동기화 완료')
    })
-   .catch(console.error)
+   .catch((error) => {
+      console.error('DB 연결 실패:', error)
+   })
 
 // uploads 폴더가 없을 경우 새로 생성
 try {
