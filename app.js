@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser')
 const { sequelize } = require('./models')
 const fs = require('fs')
 const dotenv = require('dotenv')
+const path = require('path')
 
 dotenv.config()
 
@@ -12,6 +13,17 @@ dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 8000
+
+//공용 미들웨어
+app.use(
+   cors({
+      origin: 'http://localhost:5173', // 특정 주소만 request 허용
+      credentials: true, // 쿠키, 세션 등 인증 정보 허용
+   }),
+   express.json(),
+   express.urlencoded({ extended: false }),
+   cookieParser(process.env.COOKIE_SECRET)
+)
 
 // 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
 sequelize
@@ -31,6 +43,7 @@ try {
    console.log('uploads 폴더가 없어 uploads 폴더를 생성합니다.')
    fs.mkdirSync('uploads') // 폴더 생성
 }
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // 라우터 가져오기
 const naverNewsRouter = require('./routes/news.js')
