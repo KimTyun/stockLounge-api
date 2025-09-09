@@ -1,9 +1,11 @@
+const { Sequelize, DataTypes } = require('sequelize')
+
 module.exports = class Category extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
             category: {
-               type: DataTypes.String(100),
+               type: DataTypes.STRING(100),
                allowNull: false,
                defaultValue: 'free',
             },
@@ -13,7 +15,7 @@ module.exports = class Category extends Sequelize.Model {
             timestamps: false,
             underscored: false,
             modelName: 'Category',
-            tableName: 'categorys',
+            tableName: 'categories',
             paranoid: false,
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',

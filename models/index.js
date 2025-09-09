@@ -14,14 +14,14 @@ const Category = require('./category')
 db.sequelize = sequelize
 db.User = User
 db.Board = Board
-db.Category = require('./category')
+db.Category = Category
 
 User.init(sequelize)
 Board.init(sequelize)
 Category.init(sequelize)
 
-User.associate(db)
-Board.init(db)
-Category.init(db)
+User.associate && User.associate(db)
+Board.associate && Board.associate(db)
+Category.associate && Category.associate(db)
 
 module.exports = db
