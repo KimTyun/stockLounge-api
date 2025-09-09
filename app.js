@@ -26,19 +26,12 @@ sequelize
 
 // uploads 폴더가 없을 경우 새로 생성
 try {
-   fs.readdirSync('uploads') //해당 폴더가 있는지 확인
+   fs.readdirSync('uploads') // 해당 폴더가 있는지 확인
 } catch (error) {
    console.log('uploads 폴더가 없어 uploads 폴더를 생성합니다.')
-   fs.mkdirSync('uploads') //폴더 생성
+   fs.mkdirSync('uploads') // 폴더 생성
 }
 
-// 404 에러 핸들링 (라우트를 찾을 수 없을 때)
-app.use((req, res, next) => {
-   res.status(404).json({
-      success: false,
-      message: `경로를 찾을 수 없습니다: ${req.originalUrl}`,
-   })
-})
 // 라우터 가져오기
 const naverNewsRouter = require('./routes/news.js')
 
@@ -69,6 +62,14 @@ app.use((err, req, res, next) => {
       success: false,
       message: errorMessage,
       error: err,
+   })
+})
+
+// 404 에러 핸들링 (라우트를 찾을 수 없을 때)
+app.use((req, res, next) => {
+   res.status(404).json({
+      success: false,
+      message: `경로를 찾을 수 없습니다: ${req.originalUrl}`,
    })
 })
 
