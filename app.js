@@ -39,24 +39,36 @@ app.use((req, res, next) => {
       message: `경로를 찾을 수 없습니다: ${req.originalUrl}`,
    })
 })
+// 라우터 가져오기
+const naverNewsRouter = require('./routes/news.js')
 
-// 전역 에러 핸들링 미들웨어
+// 라우터 연결
+app.use('/news', naverNewsRouter)
+
+app.get('/', (req, res) => {
+   res.send('서버실행중')
+})
+
+// 에러 미들웨어
 app.use((err, req, res, next) => {
-   const statusCode = err.status || err.statusCode || 500
+   const statusCode = err.status || 500
    const errorMessage = err.message || '서버 내부 오류'
-
    if (process.env.NODE_ENV === 'development') {
-      console.error('에러 발생:', err)
       return res.status(statusCode).json({
          success: false,
          message: errorMessage,
+         stack: err.stack, // 스택 트레이스 추가
          error: err,
       })
+   }
+   if (process.env.NODE_ENV === 'development') {
+      console.log(err)
    }
 
    res.status(statusCode).json({
       success: false,
-      message: statusCode === 500 ? '서버 내부 오류가 발생했습니다.' : errorMessage,
+      message: errorMessage,
+      error: err,
    })
 })
 
