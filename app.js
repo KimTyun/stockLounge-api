@@ -9,7 +9,7 @@ const path = require('path')
 dotenv.config()
 
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
-// const db = require('./config/db') // 사용하지 않으면 주석 처리
+const db = require('./config/db') // 사용하지 않으면 주석 처리
 
 const app = express()
 const PORT = process.env.PORT || 8000
