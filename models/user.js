@@ -50,7 +50,6 @@ module.exports = class User extends Sequelize.Model {
    }
 
    static associate(db) {
-      // User -> Board (1:N)
       db.User.hasMany(db.Board, {
          foreignKey: 'user_id',
          sourceKey: 'id',
