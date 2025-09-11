@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 8000
 //공용 미들웨어
 app.use(
    cors({
-      origin: 'http://localhost:5173', // 특정 주소만 request 허용
+      origin: process.env.FRONTEND_APP_URL, // 특정 주소만 request 허용
       credentials: true, // 쿠키, 세션 등 인증 정보 허용
    }),
    express.json(),
@@ -57,34 +57,27 @@ app.get('/', (req, res) => {
    res.send('서버실행중')
 })
 
+// 404 에러 핸들링 (라우트를 찾을 수 없을 때)
+app.use((req, res, next) => {
+   const error = new Error(`경로를 찾을 수 없습니다: ${req.originalUrl}`)
+   error.status = 404
+   next(error)
+})
+
 // 에러 미들웨어
 app.use((err, req, res, next) => {
    const statusCode = err.status || 500
    const errorMessage = err.message || '서버 내부 오류'
-   if (process.env.NODE_ENV === 'development') {
-      return res.status(statusCode).json({
-         success: false,
-         message: errorMessage,
-         stack: err.stack, // 스택 트레이스 추가
-         error: err,
-      })
-   }
+
    if (process.env.NODE_ENV === 'development') {
       console.log(err)
    }
 
-   res.status(statusCode).json({
+   return res.status(statusCode).json({
       success: false,
       message: errorMessage,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : null, // 스택 트레이스 추가
       error: err,
-   })
-})
-
-// 404 에러 핸들링 (라우트를 찾을 수 없을 때)
-app.use((req, res, next) => {
-   res.status(404).json({
-      success: false,
-      message: `경로를 찾을 수 없습니다: ${req.originalUrl}`,
    })
 })
 

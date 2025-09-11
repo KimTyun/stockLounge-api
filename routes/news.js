@@ -15,23 +15,10 @@ const naverApi = axios.create({
    },
 })
 
-router.get('/crypto', async (req, res, next) => {
+router.get('/', async (req, res, next) => {
    try {
-      const { length } = req.query
-      const newsData = await naverApi.get('', { params: { query: '암호화폐', sort: 'date', display: length } })
-      res.json({
-         success: true,
-         data: newsData.data,
-      })
-   } catch (error) {
-      next(error)
-   }
-})
-
-router.get('/economy', async (req, res, next) => {
-   try {
-      const { length } = req.query
-      const newsData = await naverApi.get('', { params: { query: '경제', sort: 'date', display: length } })
+      const { length, query } = req.query
+      const newsData = await naverApi.get('', { params: { query, sort: 'date', display: length } })
       res.json({
          success: true,
          data: newsData.data,
