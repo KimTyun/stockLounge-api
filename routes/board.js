@@ -65,7 +65,7 @@ router.post('/write', upload.single('file'), async (req, res, next) => {
       // category가 DB에 없으면 생성, 있으면 가져오기(findOrCreate 이용)
       const [findCategory, created] = await Category.findOrCreate({
          where: { category },
-         default: { category },
+         defaults: { category },
       })
 
       const newBoard = await Board.create({
@@ -75,7 +75,6 @@ router.post('/write', upload.single('file'), async (req, res, next) => {
          // 이미지 파일이 있으면 파일명 저장
          board_img: req.file ? req.file.filename : null,
       })
-      console.log(req)
 
       res.status(201).json({
          success: true,

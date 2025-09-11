@@ -1,5 +1,4 @@
 const { Sequelize, DataTypes } = require('sequelize')
-const { Category } = require('.')
 
 // 로그인 생기기 전까지는 allownull 모두 true 할게요
 
