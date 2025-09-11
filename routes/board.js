@@ -1,7 +1,10 @@
 const express = require('express')
-const { Board, Comment } = require('../models')
-const router = express.Router()
+const multer = require('multer')
+const path = require('path')
+const { Board, Comment, Category } = require('../models')
+const fs = require('fs')
 require('dotenv').config()
+const router = express.Router()
 
 // uploads 폴더가 없을 경우 새로 생성
 try {
@@ -24,8 +27,6 @@ const upload = multer({
          const basename = path.basename(decodedFileName, ext) //확장자 제거한 파일명 추출
 
          // 파일명 설정: 기존이름 + 업로드 날짜시간 + 확장자
-         // dog.jpg
-         // ex) dog + 1231342432443 + .jpg
          cb(null, basename + Date.now() + ext)
       },
    }),
@@ -47,45 +48,46 @@ router.get('/', async (req, res, next) => {
          group: ['Board.id'],
       })
 
-      res.json(boards)
+      res.json({
+         success: true,
+         data: boards,
+      })
    } catch (error) {
       next(error)
    }
 })
 
 // 게시글 등록
-router.post('/write', async (req, res, next) => {
+router.post('/write', upload.single('file'), async (req, res, next) => {
    try {
+      const { title, content, category } = req.body
 
-      if (!req.files) {
-         const error = new Error('파일 업로드에 실패했습니다.')
-         error.status = 400
-         return next(error)
-       }
-
-      const { title, content, board_img, category } = req.body
-
-      const newBoards = await Board.create({
-         title,
-         content,
-         board_img,
-         category,
+      // category가 DB에 없으면 생성, 있으면 가져오기(findOrCreate 이용)
+      const [findCategory, created] = await Category.findOrCreate({
+         where: { category },
+         default: { category },
       })
 
-      const images = req.files.map((file) => ({
-         oriImgName: file.oriImgName, // 원본 이미지명
-         imgUrl: `/${file.filename}`, // 이미지 경로
-         repImgYn: 'N', // 기본적으로 N 설정
-         itemId: item.id, // 생성된 상품 ID 연결
-      }))
+      const newBoard = await Board.create({
+         title,
+         content,
+         category: findCategory.id,
+         // 이미지 파일이 있으면 파일명 저장
+         board_img: req.file ? req.file.filename : null,
+      })
+      console.log(req)
 
       res.status(201).json({
          success: true,
          message: '게시글 등록 성공!',
-         newBoards,
-         images,
+         board: newBoard,
+         // 새로 생성되는지 여부 확인
+         findCategory: created,
       })
    } catch (error) {
+      console.error(error)
       next(error)
    }
 })
+
+module.exports = router
