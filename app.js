@@ -5,7 +5,7 @@ const { sequelize } = require('./models')
 const fs = require('fs')
 const dotenv = require('dotenv')
 const path = require('path')
-
+const morgan = require('morgan')
 dotenv.config()
 
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
@@ -22,7 +22,8 @@ app.use(
    }),
    express.json(),
    express.urlencoded({ extended: false }),
-   cookieParser(process.env.COOKIE_SECRET)
+   cookieParser(process.env.COOKIE_SECRET),
+   morgan('dev')
 )
 
 // 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
