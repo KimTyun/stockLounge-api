@@ -44,8 +44,7 @@ router.get('/', async (req, res, next) => {
                attributes: [],
             },
          ],
-         attributes: ['title', 'user_id', 'view_count', 'like_count', 'createdAt', [Board.sequelize.fn('COUNT', Board.sequelize.col('Comments.id')), 'comment_count']],
-         group: ['Board.id'],
+         order: [['created_at', 'DESC']],
       })
 
       res.json({
@@ -79,12 +78,36 @@ router.post('/write', upload.single('file'), async (req, res, next) => {
       res.status(201).json({
          success: true,
          message: '게시글 등록 성공!',
-         board: newBoard,
+         data: newBoard,
          // 새로 생성되는지 여부 확인
          findCategory: created,
       })
    } catch (error) {
-      console.error(error)
+      next(error)
+   }
+})
+
+// 특정 게시글 가져오기
+router.get('/:id', async (req, res, next) => {
+   try {
+      const id = req.params.id
+
+      const board = await Board.findOne({
+         where: { id },
+      })
+
+      if (!board) {
+         const error = new Error('해당 게시글을 찾을 수 없습니다.')
+         error.status = 404
+         return next(error)
+      }
+
+      res.json({
+         success: true,
+         message: '게시글 조회 성공',
+         data: board,
+      })
+   } catch (error) {
       next(error)
    }
 })
