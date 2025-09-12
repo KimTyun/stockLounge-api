@@ -26,15 +26,15 @@ app.use(
 )
 
 // 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
-// sequelize
-//    .sync({ force: false, alter: false })
-//    .then(() => {
-//       console.log('DB 연결 및 모델 동기화 완료')
-//    })
-//    .catch((error) => {
-//       console.error('DB 연결 실패:', error)
-//       process.exit(1) // DB 연결 실패 시 서버 종료
-//    })
+sequelize
+   .sync({ force: false, alter: false })
+   .then(() => {
+      console.log('DB 연결 및 모델 동기화 완료')
+   })
+   .catch((error) => {
+      console.error('DB 연결 실패:', error)
+      process.exit(1) // DB 연결 실패 시 서버 종료
+   })
 
 // uploads 폴더가 없을 경우 새로 생성
 try {
