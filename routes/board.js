@@ -155,6 +155,12 @@ router.put('/:id', async (req, res, next) => {
          content,
          board_img,
       })
+
+      res.json({
+         success: true,
+         message: '게시글이 수정되었습니다.',
+         data: board,
+      })
    } catch (error) {
       next(error)
    }
