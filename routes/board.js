@@ -112,4 +112,30 @@ router.get('/:id', async (req, res, next) => {
    }
 })
 
+// 게시글 삭제
+router.delete('/:id', async (req, res, next) => {
+   try {
+      const id = req.params.id
+
+      // 게시글이 존재하는지 확인
+      const board = await Board.findByPk(id)
+
+      if (!board) {
+         const error = new Error('게시글을 찾을 수 없습니다.')
+         error.status = 404
+         return next(error)
+      }
+
+      // 게시글 삭제
+      await board.destroy()
+
+      res.json({
+         success: true,
+         message: '게시글이 삭제되었습니다.',
+      })
+   } catch (error) {
+      next(error)
+   }
+})
+
 module.exports = router
