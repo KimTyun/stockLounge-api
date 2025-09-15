@@ -1,12 +1,14 @@
 const { Sequelize, DataTypes } = require('sequelize')
 
+// 로그인 생기기 전까지는 allownull 모두 true 할게요
+
 module.exports = class Board extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
             user_id: {
                type: DataTypes.INTEGER,
-               allowNull: false,
+               allowNull: true,
                references: {
                   model: 'users',
                   key: 'id',
@@ -17,20 +19,28 @@ module.exports = class Board extends Sequelize.Model {
             },
             title: {
                type: DataTypes.STRING(200),
-               allowNull: false,
+               allowNull: true,
             },
             content: {
                type: DataTypes.TEXT,
                allowNull: true,
             },
+            category: {
+               type: DataTypes.INTEGER,
+               allowNull: true,
+               references: {
+                  model: 'categories',
+                  key: 'id',
+               },
+            },
             like_count: {
                type: DataTypes.INTEGER,
-               allowNull: false,
+               allowNull: true,
                defaultValue: 0,
             },
             report_count: {
                type: DataTypes.INTEGER,
-               allowNull: false,
+               allowNull: true,
                defaultValue: 0,
             },
             board_img: {
@@ -39,16 +49,16 @@ module.exports = class Board extends Sequelize.Model {
             },
             view_count: {
                type: DataTypes.INTEGER,
-               allowNull: false,
+               allowNull: true,
             },
          },
          {
             sequelize,
             timestamps: true,
-            underscored: false,
+            underscored: true,
             modelName: 'Board',
             tableName: 'boards',
-            paranoid: false,
+            paranoid: true,
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
          }
