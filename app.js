@@ -6,6 +6,8 @@ const fs = require('fs')
 const dotenv = require('dotenv')
 const path = require('path')
 const morgan = require('morgan')
+const swaggerUi = require('swagger-ui-express')
+const swaggerDocument = require('./swagger')
 dotenv.config()
 
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
@@ -50,6 +52,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 const naverNewsRouter = require('./routes/news.js')
 
 // 라우터 연결
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 app.use('/news', naverNewsRouter)
 
 app.get('/', (req, res) => {
