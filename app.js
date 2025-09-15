@@ -5,7 +5,7 @@ const { sequelize } = require('./models')
 const fs = require('fs')
 const dotenv = require('dotenv')
 const path = require('path')
-
+const morgan = require('morgan')
 dotenv.config()
 
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
@@ -22,7 +22,8 @@ app.use(
    }),
    express.json(),
    express.urlencoded({ extended: false }),
-   cookieParser(process.env.COOKIE_SECRET)
+   cookieParser(process.env.COOKIE_SECRET),
+   morgan('dev')
 )
 
 // 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
@@ -47,11 +48,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // 라우터 가져오기
 const naverNewsRouter = require('./routes/news.js')
-const adminRoutes = require('./routes/admin')
+const boardRouter = require('./routes/board.js')
+const adminRouter = require('./routes/admin.js')
 
 // 라우터 연결
 app.use('/news', naverNewsRouter)
-app.use('/admin', adminRoutes)
+app.use('/board', boardRouter)
+app.use('/admin', adminRouter)
 
 app.get('/', (req, res) => {
    res.send('서버실행중')

@@ -31,7 +31,7 @@ router.get('/dashboard-data', async (req, res) => {
 router.get('/users', async (req, res) => {
    try {
       const users = await User.findAll({
-         attributes: ['id', 'email', 'name', 'age', 'roles', 'isban', 'provider', 'createdAt'],
+         attributes: ['id', 'email', 'name', 'age', 'roles', 'is_ban', 'provider', 'createdAt'],
       })
       res.status(200).json({ users })
    } catch (error) {
@@ -44,7 +44,7 @@ router.get('/users', async (req, res) => {
 router.get('/user/:id', async (req, res) => {
    try {
       const user = await User.findByPk(req.params.id, {
-         attributes: ['id', 'email', 'name', 'age', 'roles', 'isban', 'provider', 'createdAt'],
+         attributes: ['id', 'email', 'name', 'age', 'roles', 'is_ban', 'provider', 'createdAt'],
       })
       if (!user) {
          return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
@@ -60,17 +60,17 @@ router.get('/user/:id', async (req, res) => {
 router.put('/user/:id/ban', async (req, res) => {
    const transaction = await sequelize.transaction()
    try {
-      const { isban } = req.body
+      const { is_ban } = req.body
       const user = await User.findByPk(req.params.id, { transaction })
       if (!user) {
          await transaction.rollback()
          return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
       }
 
-      await user.update({ isban }, { transaction })
+      await user.update({ is_ban }, { transaction })
 
       //유저 밴 기록
-      if (isban) {
+      if (is_ban) {
          await Sanction.create(
             {
                type: 'ban',
