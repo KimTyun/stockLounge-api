@@ -140,8 +140,6 @@ router.delete('/:id', async (req, res, next) => {
 // 게시글 수정
 router.put('/:id', upload.single('file'), async (req, res, next) => {
    try {
-      console.log('받은 파일:', req.file) // 디버깅용
-      console.log('받은 데이터:', req.body) // 디버깅용
       const id = req.params.id
       const { title, content, category } = req.body
 
@@ -159,8 +157,19 @@ router.put('/:id', upload.single('file'), async (req, res, next) => {
          category,
       }
 
-      // 파일이 있으면 board_img 갱신
+      // 파일이 있으면 기존 파일 삭제 후 새 파일 저장
       if (req.file) {
+         if (board.board_img) {
+            const oldPath = path.join(__dirname, '..', 'uploads', board.board_img)
+            fs.unlink(oldPath, (err) => {
+               if (err) {
+                  console.error('기존 이미지 삭제 실패:', err)
+               } else {
+                  console.log('기존 이미지 삭제 성공:', board.board_img)
+               }
+            })
+         }
+
          updateData.board_img = req.file.filename
       }
 
