@@ -138,10 +138,12 @@ router.delete('/:id', async (req, res, next) => {
 })
 
 // 게시글 수정
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', upload.single('file'), async (req, res, next) => {
    try {
+      console.log('받은 파일:', req.file) // 디버깅용
+      console.log('받은 데이터:', req.body) // 디버깅용
       const id = req.params.id
-      const { content, board_img } = req.body
+      const { title, content, category } = req.body
 
       // 게시글이 존재하는지 확인
       const board = await Board.findByPk(id)
@@ -151,10 +153,19 @@ router.put('/:id', async (req, res, next) => {
          return next(error)
       }
 
-      await board.update({
+      const updateData = {
+         title,
          content,
-         board_img,
-      })
+         category,
+      }
+
+      // 파일이 있으면 board_img 갱신
+      if (req.file) {
+         updateData.board_img = req.file.filename
+      }
+
+      // DB 업데이트
+      await board.update(updateData)
 
       res.json({
          success: true,
