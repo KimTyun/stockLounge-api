@@ -47,9 +47,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // 라우터 가져오기
 const naverNewsRouter = require('./routes/news.js')
+const adminRoutes = require('./routes/admin')
 
 // 라우터 연결
 app.use('/news', naverNewsRouter)
+app.use('/admin', adminRoutes)
 
 app.get('/', (req, res) => {
    res.send('서버실행중')

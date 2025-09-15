@@ -7,6 +7,7 @@ const { isAdmin } = require('../middleware/middleware.js')
 
 router.use(isAdmin)
 
+// 대시보드
 router.get('/dashboard-data', async (req, res) => {
    try {
       //총 회원수, 게시글, 오늘의 활동 등 집계
@@ -179,8 +180,6 @@ router.get('/settings', async (req, res) => {
 // 사이트 설정 업뎃
 router.put('/settings', async (req, res) => {
    try {
-      const { siteName, siteDescription, maintenanceMode, allowRegistration, requireEmailVerification, pointsPerPost, pointsPerComment, pointsPerLike, coinExchangeRate, maxPostsPerDay, maxCommentsPerDay, enableSocialLogin, enableNotifications } = req.body
-
       // DB에 생성데이터 있나 확인, 없으면 생성 있으면 업뎃
       const [settings, created] = await SiteSettings.findOrCreate({
          where: { id: 1 },
@@ -193,12 +192,22 @@ router.put('/settings', async (req, res) => {
       res.status(200).json({ message: '사이트 설정이 성공적으로 저장됐습니다.', settings })
    } catch (error) {
       console.error('에러 발생: ', error)
-
       res.status(500).json({ error: '서버 오류가 발생했습니다.' })
    }
 })
 
-// 리워드 목록
+// 교환품 조회
+router.get('/rewards', async (req, res) => {
+   try {
+      const rewards = await Reward.findAll()
+      res.status(200).json({ rewards })
+   } catch (error) {
+      console.error('에러 발생: ', error)
+      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+   }
+})
+
+// 교환품 생성
 router.post('/rewards', async (req, res) => {
    try {
       const { name, points, stock } = req.body
@@ -206,37 +215,37 @@ router.post('/rewards', async (req, res) => {
          return res.status(400).json({ error: '필수 정보를 올바르게 입력해주세요.' })
       }
       const newReward = await Reward.create({ name, points, stock })
-      res.status(201).json({ message: '리워드가 추가되었습니다.', reward: newReward })
+      res.status(201).json({ message: '교환품이 추가되었습니다.', reward: newReward })
    } catch (error) {
       console.error('에러 발생: ', error)
       res.status(500).json({ error: '서버 오류가 발생했습니다.' })
    }
 })
 
-// 리워드 수정
+// 교환품 수정
 router.put('/rewards/:id', async (req, res) => {
    try {
       const reward = await Reward.findByPk(req.params.id)
       if (!reward) {
-         return res.status(404).json({ error: '리워드를 찾을 수 없습니다.' })
+         return res.status(404).json({ error: '교환품을 찾을 수 없습니다.' })
       }
       await reward.update(req.body)
-      res.status(200).json({ message: '리워드가 성공적으로 업데이트되었습니다.', reward })
+      res.status(200).json({ message: '교환품이 성공적으로 업데이트되었습니다.', reward })
    } catch (error) {
       console.error('에러 발생: ', error)
       res.status(500).json({ error: '서버 오류가 발생했습니다.' })
    }
 })
 
-// 리워드 삭제
+// 교환품 삭제
 router.delete('/rewards/:id', async (req, res) => {
    try {
       const reward = await Reward.findByPk(req.params.id)
       if (!reward) {
-         return res.status(404).json({ error: '리워드를 찾을 수 없습니다.' })
+         return res.status(404).json({ error: '교환품을 찾을 수 없습니다.' })
       }
       await reward.destroy()
-      res.status(200).json({ message: '리워드를 삭제했습니다.' })
+      res.status(200).json({ message: '교환품을 삭제했습니다.' })
    } catch (error) {
       console.error('에러 발생: ', error)
       res.status(500).json({ error: '서버 오류가 발생했습니다.' })
