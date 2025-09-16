@@ -120,7 +120,7 @@ router.get('/me/posts', async (req, res, next) => {
       const page = parseInt(req.query.page)
 
       if (!limit || !page) {
-         const error = new Error('필수 qeury 누락 : limit, page')
+         const error = new Error('필수 query 누락 : limit, page')
          error.status = 400
          throw error
       }
@@ -149,7 +149,7 @@ router.get('/me/comments', async (req, res, next) => {
       const page = parseInt(req.query.page)
 
       if (!limit || !page) {
-         const error = new Error('필수 qeury 누락 : limit, page')
+         const error = new Error('필수 query 누락 : limit, page')
          error.status = 400
          throw error
       }
@@ -178,13 +178,12 @@ router.get('/me/reward', async (req, res, next) => {
       const page = parseInt(req.query.page)
 
       if (!limit || !page) {
-         const error = new Error('필수 qeury 누락 : limit, page')
+         const error = new Error('필수 query 누락 : limit, page')
          error.status = 400
          throw error
       }
       const offset = (page - 1) * limit
 
-      // 모델 미구현(erd 기반 코드설계)
       const reward = await Reward.findOne({ where: { id: req.user.id } })
       const data = await RewardRecord.findAll({ where: { user_id: req.user.id }, limit, offset })
 
@@ -210,7 +209,7 @@ router.get('/', async (req, res, next) => {
       const page = parseInt(req.query.page)
 
       if (!limit || !page) {
-         const error = new Error('필수 qeury 누락 : limit, page')
+         const error = new Error('필수 query 누락 : limit, page')
          error.status = 400
          throw error
       }
