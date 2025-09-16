@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 8000
 //공용 미들웨어
 app.use(
    cors({
-      origin: process.env.FRONTEND_APP_URL, // 특정 주소만 request 허용
+      origin: process.env.FRONTEND_APP_URL || 'http://localhost:5173', // 특정 주소만 request 허용
       credentials: true, // 쿠키, 세션 등 인증 정보 허용
    }),
    express.json(),
@@ -49,10 +49,14 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 // 라우터 가져오기
 const naverNewsRouter = require('./routes/news.js')
 const boardRouter = require('./routes/board.js')
+const authRouter = require('./routes/auth.js')
+const upbitRouter = require('./routes/upbit.js')
 
 // 라우터 연결
 app.use('/news', naverNewsRouter)
 app.use('/board', boardRouter)
+app.use('/auth', authRouter)
+app.use('/upbit', upbitRouter)
 
 app.get('/', (req, res) => {
    res.send('서버실행중')
