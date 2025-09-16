@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { SiteSettings, BanWord, Reward, Report, Sanction, Transaction } = require('../models/admin.js')
+const { SiteSettings, BanWord, Reward, Report, Sanction, Transaction } = require('../models/site_settings.js')
 const { User, Board } = require('../models')
 const { sequelize } = require('../models/index.js')
 const { isAdmin } = require('../middleware/middleware.js')
@@ -21,18 +21,6 @@ router.get('/dashboard-data', async (req, res) => {
          adminAlerts: [],
       }
       res.status(200).json({ dashboardData })
-   } catch (error) {
-      next(error)
-   }
-})
-
-// 모든 이용자 정보 조회
-router.get('/users', async (req, res) => {
-   try {
-      const users = await User.findAll({
-         attributes: ['id', 'email', 'name', 'age', 'roles', 'is_ban', 'provider', 'createdAt'],
-      })
-      res.status(200).json({ users })
    } catch (error) {
       next(error)
    }
@@ -107,7 +95,7 @@ router.delete('/boards/:id', async (req, res) => {
 })
 
 // 금칙어 규칙 목록
-router.get('/ban-words', async (req, res) => {
+router.get('/ban-words', async (req, res, next) => {
    try {
       const banWords = await BanWord.findAll()
       res.status(200).json({ banWords })
@@ -117,7 +105,7 @@ router.get('/ban-words', async (req, res) => {
 })
 
 // 금칙어 추가
-router.post('/ban-words', async (req, res) => {
+router.post('/ban-words', async (req, res, next) => {
    try {
       const { word } = req.body
       if (!word) {
@@ -131,7 +119,7 @@ router.post('/ban-words', async (req, res) => {
 })
 
 // 금칙어 삭제
-router.delete('/ban-words/:id', async (req, res) => {
+router.delete('/ban-words/:id', async (req, res, next) => {
    try {
       const banWord = await BanWord.findByPk(req.params.id)
       if (!banWord) {
@@ -145,7 +133,7 @@ router.delete('/ban-words/:id', async (req, res) => {
 })
 
 // 사이트 관리
-router.get('/settings', async (req, res) => {
+router.get('/settings', async (req, res, next) => {
    try {
       const settings = await SiteSettings.findOne()
       if (!settings) {
@@ -158,7 +146,7 @@ router.get('/settings', async (req, res) => {
 })
 
 // 사이트 설정 업뎃
-router.put('/settings', async (req, res) => {
+router.put('/settings', async (req, res, next) => {
    try {
       // DB에 생성데이터 있나 확인, 없으면 생성 있으면 업뎃
       const [settings, created] = await SiteSettings.findOrCreate({
@@ -175,24 +163,16 @@ router.put('/settings', async (req, res) => {
    }
 })
 
-// 교환품 조회
-router.get('/rewards', async (req, res) => {
-   try {
-      const rewards = await Reward.findAll()
-      res.status(200).json({ rewards })
-   } catch (error) {
-      next(error)
-   }
-})
-
 // 교환품 생성
-router.post('/rewards', async (req, res) => {
+router.post('/rewards', async (req, res, next) => {
    try {
       const { name, points, stock } = req.body
-      if (!name || points == null || points < 0 || stock == null || stock < 0) {
+      const pointsNum = Number(points)
+      const stockNum = Number(stock)
+      if (!name || !Number.isFinite(pointsNum) || pointsNum < 0 || !Number.isFinite(stockNum) || stockNum < 0) {
          return res.status(400).json({ error: '필수 정보를 올바르게 입력해주세요.' })
       }
-      const newReward = await Reward.create({ name, points, stock })
+      const newReward = await Reward.create({ name, points: pointsNum, stock: stockNum })
       res.status(201).json({ message: '교환품이 추가되었습니다.', reward: newReward })
    } catch (error) {
       next(error)
@@ -200,7 +180,7 @@ router.post('/rewards', async (req, res) => {
 })
 
 // 교환품 수정
-router.put('/rewards/:id', async (req, res) => {
+router.put('/rewards/:id', async (req, res, next) => {
    try {
       const reward = await Reward.findByPk(req.params.id)
       if (!reward) {
@@ -214,7 +194,7 @@ router.put('/rewards/:id', async (req, res) => {
 })
 
 // 교환품 삭제
-router.delete('/rewards/:id', async (req, res) => {
+router.delete('/rewards/:id', async (req, res, next) => {
    try {
       const reward = await Reward.findByPk(req.params.id)
       if (!reward) {
@@ -228,7 +208,7 @@ router.delete('/rewards/:id', async (req, res) => {
 })
 
 // 통계
-router.get('/statistics', async (req, res) => {
+router.get('/statistics', async (req, res, next) => {
    try {
       // 일, 주, 월별 통계 데이터 조회
       const dailyUsersStats = await User.count({

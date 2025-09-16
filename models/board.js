@@ -51,21 +51,6 @@ module.exports = class Board extends Sequelize.Model {
                type: DataTypes.INTEGER,
                allowNull: true,
             },
-            status: {
-               type: DataTypes.ENUM('PUBLISHED', 'HIDDEN', 'DELETED'),
-               allowNull: false,
-               defaultValue: 'PUBLISHED',
-            },
-            is_notice: {
-               type: DataTypes.BOOLEAN,
-               allowNull: false,
-               defaultValue: false,
-            },
-            is_pinned: {
-               type: DataTypes.BOOLEAN,
-               allowNull: false,
-               defaultValue: false,
-            },
          },
          {
             sequelize,
