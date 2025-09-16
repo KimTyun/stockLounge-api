@@ -35,6 +35,10 @@ module.exports = class User extends Sequelize.Model {
                type: DataTypes.ENUM('KAKAO', 'GOOGLE'),
                allowNull: false,
             },
+            profile_img: {
+               type: DataTypes.TEXT,
+               allowNull: true,
+            },
          },
          {
             sequelize,
@@ -52,6 +56,11 @@ module.exports = class User extends Sequelize.Model {
    static associate(db) {
       db.User.hasMany(db.Board, {
          foreignKey: 'user_id',
+         sourceKey: 'id',
+      })
+
+      db.User.hasOne(db.Reward, {
+         foreignKey: 'id',
          sourceKey: 'id',
       })
    }

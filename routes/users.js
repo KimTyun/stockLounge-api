@@ -1,10 +1,10 @@
 const express = require('express')
-const { User, Board, Comment } = require('../models')
+const { User, Board, Comment, Reward, RewardRecord } = require('../models')
 const router = express.Router()
 const fs = require('fs')
 const path = require('path')
 const multer = require('multer')
-const { get } = require('http')
+const bcrypt = require('bcrypt')
 
 try {
    fs.readdirSync('uploads/user')
@@ -92,15 +92,15 @@ router.get('/me', async (req, res, next) => {
 //내정보 수정하기
 router.put('/me', async (req, res, next) => {
    try {
-      const { name, email, phone, address, addresDetail } = req.body
+      const { name, pw, age } = req.body
+
+      const hash = await bcrypt.hash(pw, 10)
       const user = await User.findByPk(req.user.id)
 
       await user.update({
          name,
-         email,
-         phone,
-         address,
-         addresDetail,
+         pw: hash,
+         age,
       })
 
       res.json({
@@ -123,13 +123,13 @@ router.put('/me/profile-img', upload.single('file'), async (req, res, next) => {
          throw error
       }
 
-      //유저 프로필사진 업데이트(user models가 완전하지 않아서 임시 주석처리)
+      //유저 프로필사진 업데이트
       await user.update({
-         //profileImg : `/uploads/user/${req.file.filename}`
+         profile_img: `/uploads/user/${req.file.filename}`,
       })
 
-      //프로필 변경 완료 후 기존 프로필 사진 삭제
-      if (user.profileImg) {
+      //프로필 변경 완료 후 기존 프로필 사진이 있을 경우 삭제(구글 프로필 사진은 파일 존재 x)
+      if (user.profile_img) {
          const filePath = path.join(__dirname, '..', user.profileImg)
          if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath)
@@ -201,15 +201,23 @@ router.get('/me/comments', async (req, res, next) => {
 //포인트 획득,사용기록 가져오기
 router.get('/me/reward', async (req, res, next) => {
    try {
+      const { limit, page } = req.query
+      if (!limit || !page) {
+         const error = new Error('필수 qeury 누락 : limit, page')
+         error.status = 400
+         throw error
+      }
+      const offset = (Number(page) - 1) * Number(limit)
+
       // 모델 미구현(erd 기반 코드설계)
-      // const reward = Reward.findOne({ where: { user_id: req.user.id } })
-      // const data = RewardRecord.findAll({ where: { reward_no: reward.id } })
+      const reward = Reward.findOne({ where: { id: req.user.id } })
+      const data = RewardRecord.findAll({ where: { user_id: req.user.id }, limit, offset })
 
       res.json({
          success: true,
          data: {
             data,
-            accumulated_rewards: reward.accumulated_rewards,
+            accumulated_point: reward.accumulated_point,
             point: reward.point,
          },
       })
