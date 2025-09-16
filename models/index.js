@@ -13,7 +13,7 @@ const Board = require('./board')
 const Category = require('./category')
 const Comment = require('./comment')
 const Reward = require('./reward')
-const RewardRecord = require('./rewardRecode')
+const RewardRecord = require('./rewardRecord')
 
 db.sequelize = sequelize
 db.User = User
