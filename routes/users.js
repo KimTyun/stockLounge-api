@@ -31,12 +31,6 @@ const upload = multer({
    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB로 제한
 })
 
-//passport구현 전 req.user.id 임시값
-router.use((req, res, next) => {
-   req.user = { id: 1 } // DB에 존재하는 id 넣기
-   next()
-})
-
 /* mypage 관련 api */
 
 //내정보 가져오기
