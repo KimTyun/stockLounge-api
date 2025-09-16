@@ -29,12 +29,12 @@ app.use(
    morgan('dev'),
    session({
       resave: false,
-      saveUninitialized: true,
+      saveUninitialized: false,
       secret: process.env.COOKIE_SECRET,
       cookie: {
          httpOnly: true,
          signed: true,
-         secure: false,
+         secure: process.env.NODE_ENV === 'production',
       },
    }),
    passport.initialize(),
