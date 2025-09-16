@@ -9,7 +9,7 @@ const morgan = require('morgan')
 dotenv.config()
 
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
-// const db = require('./config/db') // 사용하지 않으면 주석 처리
+const db = require('./config/db') // 사용하지 않으면 주석 처리
 
 const app = express()
 const PORT = process.env.PORT || 8000
@@ -50,11 +50,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 const naverNewsRouter = require('./routes/news.js')
 const boardRouter = require('./routes/board.js')
 const commentRouter = require('./routes/comment.js')
+const adminRouter = require('./routes/admin.js')
 
 // 라우터 연결
 app.use('/news', naverNewsRouter)
 app.use('/board', boardRouter)
 app.use('/comment', commentRouter)
+app.use('/admin', adminRouter)
 
 app.get('/', (req, res) => {
    res.send('서버실행중')
