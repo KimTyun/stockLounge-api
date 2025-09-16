@@ -22,8 +22,7 @@ router.get('/dashboard-data', async (req, res) => {
       }
       res.status(200).json({ dashboardData })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -35,8 +34,7 @@ router.get('/users', async (req, res) => {
       })
       res.status(200).json({ users })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -51,17 +49,17 @@ router.get('/user/:id', async (req, res) => {
       }
       res.status(200).json({ user })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
 // 이용자 제재
-router.put('/user/:id/ban', async (req, res) => {
+router.put('/user/:id/ban', async (req, res, next) => {
    const transaction = await sequelize.transaction()
    try {
-      const { is_ban } = req.body
+      const { is_ban, reason = '관리자 권한에 의한 계정 정지' } = req.body
       const user = await User.findByPk(req.params.id, { transaction })
+
       if (!user) {
          await transaction.rollback()
          return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
@@ -69,37 +67,24 @@ router.put('/user/:id/ban', async (req, res) => {
 
       await user.update({ is_ban }, { transaction })
 
-      //유저 밴 기록
+      // 유저 밴 기록
       if (is_ban) {
          await Sanction.create(
             {
                type: 'ban',
-               reason: '관리자 권한에 의한 계정 정지',
+               reason: reason,
                sanctionedUserId: user.id,
                adminId: req.user.id,
             },
             { transaction }
          )
       }
+
       await transaction.commit()
       res.status(200).json({ message: '사용자의 제재 상태가 성공적으로 변경됐습니다.' })
    } catch (error) {
       await transaction.rollback()
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
-   }
-})
-
-// 모든 게시글 조회
-router.get('/boards', async (req, res) => {
-   try {
-      const boards = await Board.findAll({
-         include: [{ model: User, attributes: ['name', 'email'] }],
-      })
-      res.status(200).json({ boards })
-   } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -117,8 +102,7 @@ router.delete('/boards/:id', async (req, res) => {
       res.status(200).json({ message: '게시글이 성공적으로 삭제되었습니다.' })
    } catch (error) {
       await transaction.rollback()
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -128,8 +112,7 @@ router.get('/ban-words', async (req, res) => {
       const banWords = await BanWord.findAll()
       res.status(200).json({ banWords })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -143,8 +126,7 @@ router.post('/ban-words', async (req, res) => {
       const newBanWord = await BanWord.create({ word })
       res.status(201).json({ message: '금칙어가 추가되었습니다.', banWord: newBanWord })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -153,13 +135,12 @@ router.delete('/ban-words/:id', async (req, res) => {
    try {
       const banWord = await BanWord.findByPk(req.params.id)
       if (!banWord) {
-         return res.status(404).json({ message: '금칙어를 찾을 수 없습니다.' })
+         return res.status(404).json({ error: '금칙어를 찾을 수 없습니다.' })
       }
       await banWord.destroy()
       res.status(200).json({ message: '금칙어를 삭제했습니다.' })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -172,8 +153,7 @@ router.get('/settings', async (req, res) => {
       }
       res.status(200).json({ settings })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -191,8 +171,7 @@ router.put('/settings', async (req, res) => {
       }
       res.status(200).json({ message: '사이트 설정이 성공적으로 저장됐습니다.', settings })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -202,8 +181,7 @@ router.get('/rewards', async (req, res) => {
       const rewards = await Reward.findAll()
       res.status(200).json({ rewards })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -211,14 +189,13 @@ router.get('/rewards', async (req, res) => {
 router.post('/rewards', async (req, res) => {
    try {
       const { name, points, stock } = req.body
-      if (!name || points < 0 || stock < 0) {
+      if (!name || points == null || points < 0 || stock == null || stock < 0) {
          return res.status(400).json({ error: '필수 정보를 올바르게 입력해주세요.' })
       }
       const newReward = await Reward.create({ name, points, stock })
       res.status(201).json({ message: '교환품이 추가되었습니다.', reward: newReward })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -232,8 +209,7 @@ router.put('/rewards/:id', async (req, res) => {
       await reward.update(req.body)
       res.status(200).json({ message: '교환품이 성공적으로 업데이트되었습니다.', reward })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -247,8 +223,7 @@ router.delete('/rewards/:id', async (req, res) => {
       await reward.destroy()
       res.status(200).json({ message: '교환품을 삭제했습니다.' })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 
@@ -268,8 +243,7 @@ router.get('/statistics', async (req, res) => {
       }
       res.status(200).json({ stats })
    } catch (error) {
-      console.error('에러 발생: ', error)
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+      next(error)
    }
 })
 module.exports = router

@@ -1,5 +1,5 @@
 exports.isAdmin = (req, res, next) => {
-   if (req.user && req.user.roles && req.user.roles.includes('admin')) {
+   if (req.user && Array.isArray(req.user.roles) && req.user.roles === 'admin') {
       next()
    } else {
       res.status(403).json({
