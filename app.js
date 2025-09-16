@@ -49,10 +49,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 // 라우터 가져오기
 const naverNewsRouter = require('./routes/news.js')
 const boardRouter = require('./routes/board.js')
+const userRouter = require('./routes/users.js')
 
 // 라우터 연결
 app.use('/news', naverNewsRouter)
 app.use('/board', boardRouter)
+app.use('/users', userRouter)
 
 app.get('/', (req, res) => {
    res.send('서버실행중')
