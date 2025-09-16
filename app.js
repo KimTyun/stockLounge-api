@@ -28,7 +28,7 @@ app.use(
 
 // 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
 sequelize
-   .sync({ force: true, alter: true }) // 모델 변경시 테이블 강제 변경
+   .sync({ force: false, alter: false }) // 모델 변경시 테이블 강제 변경
    .then(() => {
       console.log('DB 연결 및 모델 동기화 완료')
    })
