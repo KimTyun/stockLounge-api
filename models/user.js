@@ -19,7 +19,7 @@ module.exports = class User extends Sequelize.Model {
             },
             age: {
                type: DataTypes.INTEGER,
-               allowNull: false,
+               allowNull: true,
             },
             roles: {
                type: DataTypes.ENUM('USER', 'ADMIN'),

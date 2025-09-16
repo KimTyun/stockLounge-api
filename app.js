@@ -2,11 +2,14 @@ const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const { sequelize } = require('./models')
+const session = require('express-session')
 const fs = require('fs')
 const dotenv = require('dotenv')
 const path = require('path')
 const morgan = require('morgan')
 dotenv.config()
+const passport = require('passport')
+const passportConfig = require('./passport')
 
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
 const db = require('./config/db') // 사용하지 않으면 주석 처리
@@ -23,8 +26,21 @@ app.use(
    express.json(),
    express.urlencoded({ extended: false }),
    cookieParser(process.env.COOKIE_SECRET),
-   morgan('dev')
+   morgan('dev'),
+   session({
+      resave: false,
+      saveUninitialized: false,
+      secret: process.env.COOKIE_SECRET,
+      cookie: {
+         httpOnly: true,
+         signed: true,
+         secure: process.env.NODE_ENV === 'production',
+      },
+   }),
+   passport.initialize(),
+   passport.session()
 )
+passportConfig()
 
 // 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
 sequelize
@@ -51,12 +67,14 @@ const naverNewsRouter = require('./routes/news.js')
 const boardRouter = require('./routes/board.js')
 const adminRouter = require('./routes/admin.js')
 const userRouter = require('./routes/users.js')
+const authRouter = require('./routes/auth.js')
 
 // 라우터 연결
 app.use('/news', naverNewsRouter)
 app.use('/board', boardRouter)
 app.use('/admin', adminRouter)
 app.use('/users', userRouter)
+app.use('/auth', authRouter)
 
 app.get('/', (req, res) => {
    res.send('서버실행중')
