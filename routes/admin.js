@@ -189,10 +189,12 @@ router.get('/rewards', async (req, res) => {
 router.post('/rewards', async (req, res) => {
    try {
       const { name, points, stock } = req.body
-      if (!name || points == null || points < 0 || stock == null || stock < 0) {
+      const pointsNum = Number(points)
+      const stockNum = Number(stock)
+      if (!name || !Number.isFinite(pointsNum) || pointsNum < 0 || !Number.isFinite(stockNum) || stockNum < 0) {
          return res.status(400).json({ error: '필수 정보를 올바르게 입력해주세요.' })
       }
-      const newReward = await Reward.create({ name, points, stock })
+      const newReward = await Reward.create({ name, points: pointsNum, stock: stockNum })
       res.status(201).json({ message: '교환품이 추가되었습니다.', reward: newReward })
    } catch (error) {
       next(error)
