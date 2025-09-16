@@ -1,7 +1,8 @@
 const express = require('express')
 const router = express.Router()
-const { SiteSettings, BanWord, Reward, Report, Sanction, Transaction, User, Board, Comment, Category } = require('../models')
-const { sequelize } = require('../models')
+const { SiteSettings, BanWord, Reward, Report, Sanction, Transaction } = require('../models/admin.js')
+const { User, Board } = require('../models')
+const { sequelize } = require('../models/index.js')
 const { isAdmin } = require('../middleware/middleware.js')
 const { Op } = require('sequelize')
 const moment = require('moment')
@@ -209,43 +210,23 @@ router.delete('/rewards/:id', async (req, res, next) => {
 })
 
 // 통계
-// router.get('/statistics', async (req, res, next) => {
-//    try {
-//       const { period = 'week' } = req.query
-//       const now = new Date()
-//       let startDate
-
-//       if (period === 'month') {
-//          startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
-//       } else if (period === 'year') {
-//          startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
-//       } else {
-//          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
-//       }
-
-//       // 주요 통계
-//       const newUsers = await User.count({
-//          where: {
-//             createdAt: { [Op.gte]: startDate },
-//          },
-//       })
-//       const newBoards = await Board.count({
-//          where: {
-//             createdAt: { [Op.gte]: startDate },
-//          },
-//       })
-//       const newComments = await Comment.count({
-//          where: {
-//             createdAt: { [Op.gte]: startDate },
-//          },
-//       })
-//       const newReports = await Report.count({
-//          where: {
-//             createdAt: { [Op.gte]: startDate },
-//          },
-//       })
-//    } catch (error) {
-//       next(error)
-//    }
-// })
+router.get('/statistics', async (req, res) => {
+   try {
+      // 일, 주, 월별 통계 데이터 조회
+      const dailyUsersStats = await User.count({
+         group: [sequelize.fn('date', sequelize.col('createdAt'))],
+      })
+      const dailyPostsStats = await Board.count({
+         group: [sequelize.fn('date', sequelize.col('createdAt'))],
+      })
+      const stats = {
+         dailyUsersStats: dailyUsersStats,
+         dailyPostsStats: dailyPostsStats,
+      }
+      res.status(200).json({ stats })
+   } catch (error) {
+      console.error('에러 발생: ', error)
+      res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+   }
+})
 module.exports = router
