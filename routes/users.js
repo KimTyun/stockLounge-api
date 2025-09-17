@@ -5,6 +5,7 @@ const fs = require('fs')
 const path = require('path')
 const multer = require('multer')
 const bcrypt = require('bcrypt')
+const { isLoggedIn, isAdmin } = require('../middleware/middleware')
 
 try {
    fs.readdirSync('uploads/user')
@@ -34,7 +35,7 @@ const upload = multer({
 /* mypage 관련 api */
 
 //내정보 가져오기
-router.get('/me', async (req, res, next) => {
+router.get('/me', isLoggedIn, async (req, res, next) => {
    try {
       const id = req.user.id
       const data = await User.findByPk(id)
@@ -53,7 +54,7 @@ router.get('/me', async (req, res, next) => {
 })
 
 //내정보 수정하기
-router.put('/me', async (req, res, next) => {
+router.put('/me', isLoggedIn, async (req, res, next) => {
    try {
       const { name, pw, age } = req.body
 
@@ -75,7 +76,7 @@ router.put('/me', async (req, res, next) => {
 })
 
 //프로필 사진 수정하기
-router.put('/me/profile-img', upload.single('file'), async (req, res, next) => {
+router.put('/me/profile-img', isLoggedIn, upload.single('file'), async (req, res, next) => {
    try {
       //isLogin에서 유저 존재는 이미 확인함 (isLogin구현중)
       const user = await User.findByPk(req.user.id)
@@ -85,6 +86,7 @@ router.put('/me/profile-img', upload.single('file'), async (req, res, next) => {
          error.status = 400
          throw error
       }
+      const oldProfileImg = user.profile_img
 
       //유저 프로필사진 업데이트
       await user.update({
@@ -92,8 +94,8 @@ router.put('/me/profile-img', upload.single('file'), async (req, res, next) => {
       })
 
       //프로필 변경 완료 후 기존 프로필 사진이 있을 경우 삭제(구글 프로필 사진은 파일 존재 x)
-      if (user.profile_img) {
-         const filePath = path.join(__dirname, '..', user.profile_img)
+      if (oldProfileImg) {
+         const filePath = path.join(__dirname, '..', oldProfileImg)
          if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath)
          }
@@ -108,7 +110,7 @@ router.put('/me/profile-img', upload.single('file'), async (req, res, next) => {
 })
 
 //작성글 목록 가져오기
-router.get('/me/posts', async (req, res, next) => {
+router.get('/me/posts', isLoggedIn, async (req, res, next) => {
    try {
       const limit = parseInt(req.query.limit)
       const page = parseInt(req.query.page)
@@ -120,7 +122,7 @@ router.get('/me/posts', async (req, res, next) => {
       }
       const offset = (page - 1) * limit
 
-      const posts = await Board.findAll({
+      const { count, rows: posts } = await Board.findAndCountAll({
          where: { user_id: req.user.id },
          order: [['createdAt', 'DESC']],
          limit,
@@ -129,7 +131,7 @@ router.get('/me/posts', async (req, res, next) => {
 
       res.send({
          success: true,
-         data: posts,
+         data: { posts, count },
       })
    } catch (error) {
       next(error)
@@ -137,7 +139,7 @@ router.get('/me/posts', async (req, res, next) => {
 })
 
 //작성 댓글 목록 가져오기
-router.get('/me/comments', async (req, res, next) => {
+router.get('/me/comments', isLoggedIn, async (req, res, next) => {
    try {
       const limit = parseInt(req.query.limit)
       const page = parseInt(req.query.page)
@@ -149,7 +151,7 @@ router.get('/me/comments', async (req, res, next) => {
       }
       const offset = (page - 1) * limit
 
-      const comments = await Comment.findAll({
+      const { count, rows: comments } = await Comment.findAndCountAll({
          where: { user_id: req.user.id },
          order: [['createdAt', 'DESC']],
          limit,
@@ -158,7 +160,7 @@ router.get('/me/comments', async (req, res, next) => {
 
       res.send({
          success: true,
-         data: comments,
+         data: { comments, count },
       })
    } catch (error) {
       next(error)
@@ -166,7 +168,7 @@ router.get('/me/comments', async (req, res, next) => {
 })
 
 //포인트 획득,사용기록 가져오기
-router.get('/me/reward', async (req, res, next) => {
+router.get('/me/reward', isLoggedIn, async (req, res, next) => {
    try {
       const limit = parseInt(req.query.limit)
       const page = parseInt(req.query.page)
@@ -179,7 +181,7 @@ router.get('/me/reward', async (req, res, next) => {
       const offset = (page - 1) * limit
 
       const reward = await Reward.findOne({ where: { id: req.user.id } })
-      const data = await RewardRecord.findAll({ where: { user_id: req.user.id }, limit, offset })
+      const { count, rows: data } = await RewardRecord.findAndCountAll({ where: { user_id: req.user.id }, limit, offset })
 
       res.json({
          success: true,
@@ -187,6 +189,8 @@ router.get('/me/reward', async (req, res, next) => {
             data,
             accumulated_point: reward.accumulated_point,
             point: reward.point,
+            count,
+            coin: reward.coin,
          },
       })
    } catch (error) {
@@ -197,7 +201,7 @@ router.get('/me/reward', async (req, res, next) => {
 /* user 정보 관련 api */
 
 //유저 리스트 가져오기
-router.get('/', async (req, res, next) => {
+router.get('/', isAdmin, async (req, res, next) => {
    try {
       const limit = parseInt(req.query.limit)
       const page = parseInt(req.query.page)
@@ -221,7 +225,7 @@ router.get('/', async (req, res, next) => {
 })
 
 //유저 정보 가져오기`
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', isAdmin, async (req, res, next) => {
    try {
       const id = req.params.id
       const data = await User.findByPk(id)

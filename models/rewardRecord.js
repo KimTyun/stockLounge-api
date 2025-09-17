@@ -9,13 +9,13 @@ module.exports = class RewardRecord extends Sequelize.Model {
                allowNull: false,
             },
             reason: {
-               type: DataTypes.ENUM('ADD', 'COIN_CHANGE', 'PRODUCT_CHANGE'),
+               type: DataTypes.STRING(255),
                allowNull: false,
             },
          },
          {
             sequelize,
-            timestamps: false,
+            timestamps: true,
             underscored: true,
             modelName: 'RewardRecord',
             tableName: 'reward_records',
