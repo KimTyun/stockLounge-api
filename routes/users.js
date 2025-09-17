@@ -1,5 +1,5 @@
 const express = require('express')
-const { User, Board, Comment, Reward, RewardRecord } = require('../models')
+const { User, Board, Comment, Reward, RewardRecord, Category } = require('../models')
 const router = express.Router()
 const fs = require('fs')
 const path = require('path')
@@ -125,8 +125,14 @@ router.get('/me/posts', isLoggedIn, async (req, res, next) => {
       const { count, rows: posts } = await Board.findAndCountAll({
          where: { user_id: req.user.id },
          order: [['createdAt', 'DESC']],
+         include: [
+            {
+               model: Category,
+            },
+         ],
          limit,
          offset,
+         distinct: true,
       })
 
       res.send({
@@ -154,8 +160,20 @@ router.get('/me/comments', isLoggedIn, async (req, res, next) => {
       const { count, rows: comments } = await Comment.findAndCountAll({
          where: { user_id: req.user.id },
          order: [['createdAt', 'DESC']],
+         include: [
+            {
+               model: Board,
+               attributes: ['title', 'id'],
+               include: [
+                  {
+                     model: Category,
+                  },
+               ],
+            },
+         ],
          limit,
          offset,
+         distinct: true,
       })
 
       res.send({
