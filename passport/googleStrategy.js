@@ -1,6 +1,6 @@
 require('dotenv').config()
 const GoogleStrategy = require('passport-google-oauth20').Strategy
-const User = require('../models/user')
+const { sequelize, Reward, User } = require('../models')
 const passport = require('passport')
 
 module.exports = () => {
@@ -14,27 +14,43 @@ module.exports = () => {
          },
          async (req, accessToken, refreshToken, profile, done) => {
             // 사용자 DB 조회/등록 로직
+            const transaction = await sequelize.transaction()
             try {
                const existingUser = await User.findOne({
                   where: {
                      provider: 'GOOGLE',
                      email: profile?.emails[0]?.value,
                   },
+                  transaction,
                })
 
                if (existingUser) {
                   return done(null, existingUser)
                }
-               const newUser = await User.create({
-                  email: profile?.emails[0]?.value,
-                  name: profile.displayName,
-                  profile_img: profile?.photos[0]?.value,
-                  provider: 'GOOGLE',
-                  roles: 'USER',
-               })
+               const newUser = await User.create(
+                  {
+                     email: profile?.emails[0]?.value,
+                     name: profile.displayName,
+                     profile_img: profile?.photos[0]?.value,
+                     provider: 'GOOGLE',
+                     roles: 'USER',
+                  },
+                  { transaction }
+               )
+
+               await Reward.create(
+                  {
+                     id: newUser.id,
+                     accumulated_point: 0,
+                     point: 0,
+                     coin: 0,
+                  },
+                  { transaction }
+               )
+               await transaction.commit()
                return done(null, newUser)
             } catch (error) {
-               console.log('strategy에서의 오류 : ', error)
+               await transaction.rollback()
                return done(error)
             }
          }
