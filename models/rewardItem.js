@@ -1,29 +1,30 @@
 const { Sequelize, DataTypes } = require('sequelize')
-
-module.exports = class RewardRecord extends Sequelize.Model {
+// 이 테이블은 관리자가 관리하는 상품 목록에 대한 테이블로, rewardRecord가 값을 참조해갑니다.
+module.exports = class RewardItem extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
-            change: {
-               type: DataTypes.INTEGER,
+            name: {
+               type: DataTypes.STRING(100),
                allowNull: false,
             },
-            reason: {
-               type: DataTypes.STRING(255),
-               allowNull: false,
-            },
-            reward_item_id: {
+            points: {
                type: DataTypes.INTEGER,
                allowNull: false,
+               defaultValue: 0,
+            },
+            stock: {
+               type: DataTypes.INTEGER,
+               allowNull: false,
+               defaultValue: 0,
             },
          },
          {
             sequelize,
             timestamps: true,
             underscored: true,
-            modelName: 'RewardRecord',
-            tableName: 'reward_records',
-            paranoid: true,
+            modelName: 'RewardItem',
+            tableName: 'reward_items',
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
          }
@@ -31,13 +32,9 @@ module.exports = class RewardRecord extends Sequelize.Model {
    }
 
    static associate(db) {
-      db.RewardRecord.belongsTo(db.Reward, {
-         foreignKey: 'user_id',
-         targetKey: 'id',
-      })
-      db.RewardRecord.belongsTo(db.RewardItem, {
+      db.RewardItem.hasMany(db.RewardRecord, {
          foreignKey: 'reward_item_id',
-         targetKey: 'id',
+         sourceKey: 'id',
       })
    }
 }

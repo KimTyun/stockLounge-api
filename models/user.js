@@ -62,9 +62,25 @@ module.exports = class User extends Sequelize.Model {
          foreignKey: 'user_id',
          sourceKey: 'id',
       })
-
+      db.User.hasMany(db.BanUser, {
+         foreignKey: 'user_id',
+         sourceKey: 'id',
+      })
+      db.User.hasMany(db.Product, {
+         foreignKey: 'user_id',
+         sourceKey: 'id',
+      })
+      db.User.hasMany(db.Ban, {
+         foreignKey: 'admin_id',
+         sourceKey: 'id',
+         as: 'AdminBans',
+      })
       db.User.hasOne(db.Reward, {
          foreignKey: 'id',
+         sourceKey: 'id',
+      })
+      db.User.hasMany(db.RewardRecord, {
+         foreignKey: 'user_id',
          sourceKey: 'id',
       })
    }
