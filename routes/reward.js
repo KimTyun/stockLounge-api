@@ -44,12 +44,12 @@ router.put('/coin', isLoggedIn, async (req, res, next) => {
          { transaction }
       )
 
-      transaction.commit()
+      await transaction.commit()
       res.json({
          success: true,
       })
    } catch (error) {
-      transaction.rollback()
+      await transaction.rollback()
       next(error)
    }
 })
@@ -89,12 +89,12 @@ router.put('/reward', isLoggedIn, async (req, res, next) => {
          },
          { transaction }
       )
-      transaction.commit()
+      await transaction.commit()
       res.json({
          success: true,
       })
    } catch (error) {
-      transaction.rollback()
+      await transaction.rollback()
       next(error)
    }
 })
