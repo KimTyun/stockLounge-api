@@ -2,8 +2,10 @@ const express = require('express')
 const router = express.Router()
 require('dotenv').config()
 const passport = require('passport')
+const { isLoggedIn } = require('../middleware/middleware')
 
-router.get('/status', (req, res, next) => {
+//로그인 상태확인
+router.get('/status', async (req, res, next) => {
    try {
       if (req.isAuthenticated()) {
          res.json({
@@ -21,6 +23,24 @@ router.get('/status', (req, res, next) => {
             isLoggedIn: false,
          })
       }
+   } catch (error) {
+      next(error)
+   }
+})
+
+//로그아웃
+router.get('/logout', isLoggedIn, (req, res, next) => {
+   try {
+      req.logout((err) => {
+         if (err) return next(err)
+
+         req.session.destroy((destroyErr) => {
+            if (destroyErr) return next(destroyErr)
+
+            res.clearCookie('connect.sid')
+            res.json({ success: true })
+         })
+      })
    } catch (error) {
       next(error)
    }
