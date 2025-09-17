@@ -29,7 +29,7 @@ router.get('/status', async (req, res, next) => {
 })
 
 //로그아웃
-router.get('/logout', isLoggedIn, (req, res, next) => {
+router.post('/logout', isLoggedIn, (req, res, next) => {
    try {
       req.logout((err) => {
          if (err) return next(err)
