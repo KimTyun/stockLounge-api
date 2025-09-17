@@ -54,7 +54,7 @@ router.put('/coin', isLoggedIn, async (req, res, next) => {
 })
 
 //리워드 교환하기
-router.put('/:id', isLoggedIn, async (req, res, next) => {
+router.put('/reward', isLoggedIn, async (req, res, next) => {
    const transaction = await sequelize.transaction()
    try {
       const userPoint = await Reward.findOne({ where: { id: req.user.id }, transaction })
