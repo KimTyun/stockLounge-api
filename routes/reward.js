@@ -39,6 +39,7 @@ router.put('/coin', isLoggedIn, async (req, res, next) => {
          {
             change: -(count * 1000),
             reason: 'SLC 교환',
+            user_id: req.user.id,
          },
          { transaction }
       )
@@ -84,6 +85,7 @@ router.put('/reward', isLoggedIn, async (req, res, next) => {
             change: -reward.point,
             reason: '상품 교환',
             reward_item_id: rewardId,
+            user_id: req.user.id,
          },
          { transaction }
       )
