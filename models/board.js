@@ -80,5 +80,9 @@ module.exports = class Board extends Sequelize.Model {
          foreignKey: 'board_id',
          sourceKey: 'id',
       })
+      db.Board.hasMany(db.BoardLike, {
+         foreignKey: 'board_id',
+         sourceKey: 'id',
+      })
    }
 }

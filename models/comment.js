@@ -64,5 +64,9 @@ module.exports = class Comment extends Sequelize.Model {
          foreignKey: 'board_id',
          targetKey: 'id',
       })
+      db.Board.hasMany(db.CommentLike, {
+         foreignKey: 'comment_id',
+         sourceKey: 'id',
+      })
    }
 }
