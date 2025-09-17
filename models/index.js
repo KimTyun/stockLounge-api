@@ -18,6 +18,7 @@ const BanUser = require('./ban_user')
 const Product = require('./products')
 const Ban = require('./ban')
 const RewardItem = require('./rewardItem')
+const SiteSettings = require('./site_settings')
 
 db.sequelize = sequelize
 db.User = User
@@ -30,6 +31,7 @@ db.BanUser = BanUser
 db.Product = Product
 db.Ban = Ban
 db.RewardItem = RewardItem
+db.SiteSettings = SiteSettings
 
 User.init(sequelize)
 Board.init(sequelize)
@@ -41,6 +43,7 @@ BanUser.init(sequelize)
 Product.init(sequelize)
 Ban.init(sequelize)
 RewardItem.init(sequelize)
+SiteSettings.init(sequelize)
 
 User.associate && User.associate(db)
 Board.associate && Board.associate(db)
@@ -52,5 +55,6 @@ BanUser.associate && BanUser.associate(db)
 Product.associate && Product.associate(db)
 Ban.associate && Ban.associate(db)
 RewardItem.associate && RewardItem.associate(db)
+SiteSettings.associate && SiteSettings.associate(db)
 
 module.exports = db

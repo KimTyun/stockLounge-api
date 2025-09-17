@@ -1,13 +1,23 @@
 const express = require('express')
 const router = express.Router()
-const { BanWord, Reward, Report, Sanction } = require('../models')
-const { User, Board, Ban } = require('../models')
+const { User, Board, Ban, Product, Reward, Report, Sanction, SiteSettings, Comment, Category } = require('../models')
 const { sequelize } = require('../models/index.js')
-const { isAdmin } = require('../middleware/middleware.js')
+const { isAdmin, isLoggedIn } = require('../middleware/middleware.js')
 const { Op } = require('sequelize')
-const moment = require('moment')
+const multer = require('multer') // multer 불러오기
 
 router.use(isAdmin)
+
+const storage = multer.diskStorage({
+   destination: (req, file, cb) => {
+      cb(null, 'uploads/products') // 파일이 저장될 경로 설정
+   },
+   filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`) // 저장될 파일명 설정
+   },
+})
+
+const upload = multer({ storage: storage })
 
 // 대시보드
 router.get('/dashboard-data', async (req, res) => {
@@ -96,61 +106,42 @@ router.delete('/boards/:id', async (req, res) => {
    }
 })
 
-// 금칙어 규칙 목록
-router.get('/ban-words', async (req, res, next) => {
-   try {
-      const banWords = await Ban.findAll({
-         include: [
-            {
-               model: User,
-               attributes: ['email', 'name'],
-            },
-         ],
-      })
-      res.status(200).json({ banWords })
-   } catch (error) {
-      next(error)
-   }
-})
-
-// 금칙어 추가
-router.post('/ban-words', async (req, res, next) => {
-   try {
-      const { word } = req.body
-      const adminId = req.user.id
-      if (!pattern) {
-         return res.status(400).json({ error: '등록할 금칙어를 입력해주세요.' })
-      }
-
-      const newBanWord = await Ban.create({ pattern, description, admin_id: adminId })
-      res.status(201).json({ message: '금칙어가 성공적으로 추가되었습니다.', banWord: newBanWord })
-   } catch (error) {
-      next(error)
-   }
-})
-
-// 금칙어 삭제
-router.delete('/ban-words/:id', async (req, res, next) => {
-   try {
-      const banWord = await BanWord.findByPk(req.params.id)
-      if (!banWord) {
-         return res.status(404).json({ error: '금칙어를 찾을 수 없습니다.' })
-      }
-      await banWord.destroy()
-      res.status(200).json({ message: '금칙어를 삭제했습니다.' })
-   } catch (error) {
-      next(error)
-   }
-})
-
 // 사이트 관리
 router.get('/settings', async (req, res, next) => {
    try {
-      const settings = await SiteSettings.findOne()
-      if (!settings) {
-         return res.status(404).json({ error: '사이트 설정을 찾을 수 없습니다.' })
+      console.log('SiteSettings model:', SiteSettings) // 디버깅용
+
+      if (!SiteSettings) {
+         throw new Error('SiteSettings 모델이 정의되지 않았습니다.')
       }
-      res.status(200).json({ settings })
+
+      const settingsRows = await SiteSettings.findAll()
+
+      const settings = {}
+      settingsRows.forEach((row) => {
+         settings[row.key] = row.value
+      })
+
+      // 기본 설정이 없으면 기본값 제공
+      const defaultSettings = {
+         siteName: 'StockLounge',
+         siteDescription: '코인차트 커뮤니티 플랫폼',
+         maintenanceMode: 'false',
+         allowRegistration: 'true',
+         requireEmailVerification: 'true',
+         pointsPerPost: '10',
+         pointsPerComment: '5',
+         pointsPerLike: '1',
+         coinExchangeRate: '1000',
+         maxPostsPerDay: '20',
+         maxCommentsPerDay: '50',
+         enableSocialLogin: 'true',
+         enableNotifications: 'true',
+      }
+
+      const finalSettings = { ...defaultSettings, ...settings }
+
+      res.status(200).json({ data: finalSettings })
    } catch (error) {
       next(error)
    }
@@ -158,54 +149,164 @@ router.get('/settings', async (req, res, next) => {
 
 // 사이트 설정 업뎃
 router.put('/settings', async (req, res, next) => {
+   const transaction = await sequelize.transaction()
    try {
-      // DB에 생성데이터 있나 확인, 없으면 생성 있으면 업뎃
-      const [settings, created] = await SiteSettings.findOrCreate({
-         where: { id: 1 },
-         defaults: req.body,
+      const settingsData = req.body
+
+      // 각 설정을 key-value로 저장
+      for (const [key, value] of Object.entries(settingsData)) {
+         await SiteSettings.upsert(
+            {
+               key: key,
+               value: String(value),
+            },
+            { transaction }
+         )
+      }
+
+      await transaction.commit()
+      res.status(200).json({ message: '사이트 설정이 성공적으로 저장됐습니다.' })
+   } catch (error) {
+      await transaction.rollback()
+      next(error)
+   }
+})
+
+// 금지어 목록
+router.get('/ban-words', async (req, res, next) => {
+   try {
+      const banWords = await Ban.findAll({
+         attributes: ['id', 'pattern'],
+         order: [['id', 'DESC']],
       })
 
-      if (!created) {
-         await settings.update(req.body)
+      res.status(200).json({ data: banWords })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 금지어 추가
+router.post('/ban-words', async (req, res, next) => {
+   const { pattern } = req.body
+
+   if (!pattern || pattern.trim() === '') {
+      return res.status(400).json({ message: '금지어를 입력해주세요.' })
+   }
+
+   try {
+      console.log('req.user:', req.user) // 디버깅용
+
+      // req.user가 없으면 기본값 사용
+      const adminId = req.user?.id || 1 // 임시로 1 사용
+
+      const existingWord = await Ban.findOne({ where: { pattern: pattern.trim() } })
+      if (existingWord) {
+         return res.status(409).json({ message: '이미 등록된 금지어입니다.' })
       }
-      res.status(200).json({ message: '사이트 설정이 성공적으로 저장됐습니다.', settings })
+
+      const newBanWord = await Ban.create({
+         pattern: pattern.trim(),
+         admin_id: adminId,
+      })
+
+      res.status(201).json({ data: newBanWord })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 금지어 삭제
+router.delete('/ban-words/:id', async (req, res, next) => {
+   try {
+      const { id } = req.params
+
+      const wordToDelete = await Ban.findOne({ where: { id } })
+
+      if (!wordToDelete) {
+         return res.status(404).json({ message: '해당 금지어를 찾을 수 없습니다.' })
+      }
+
+      await wordToDelete.destroy()
+
+      res.status(200).json({ message: '금지어가 성공적으로 삭제되었습니다.' })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 교환품 조회(관리자용)
+router.get('/products', async (req, res, next) => {
+   try {
+      const products = await Product.findAll({
+         attributes: ['id', 'name', 'price', 'stock'],
+         include: [
+            {
+               model: User,
+               attributes: ['name'],
+            },
+         ],
+         order: [['id', 'DESC']],
+      })
+
+      res.status(200).json({ data: products })
    } catch (error) {
       next(error)
    }
 })
 
 // 교환품 생성
-router.post('/rewards', async (req, res, next) => {
+router.post('/products', upload.single('product_img'), async (req, res, next) => {
    try {
-      const { name, points, stock } = req.body
-      const pointsNum = Number(points)
-      const stockNum = Number(stock)
-      if (!name || !Number.isFinite(pointsNum) || pointsNum < 0 || !Number.isFinite(stockNum) || stockNum < 0) {
-         return res.status(400).json({ error: '필수 정보를 올바르게 입력해주세요.' })
+      const { name, price, stock } = req.body
+
+      const product_img = req.file ? `/uploads/products/${req.file.filename}` : null
+
+      if (!name || !price || !stock) {
+         return res.status(400).json({ message: '모든 필수 필드를 입력해야 합니다.' })
       }
-      const newReward = await Reward.create({ name, points: pointsNum, stock: stockNum })
-      res.status(201).json({ message: '교환품이 추가되었습니다.', reward: newReward })
+
+      // const userId = req.user.id
+      const userId = 1
+
+      const newProduct = await Product.create({
+         name,
+         user_id: userId,
+         price,
+         stock,
+         product_img,
+      })
+
+      res.status(201).json({ message: '교환품이 성공적으로 추가되었습니다.', product: newProduct })
    } catch (error) {
       next(error)
    }
 })
 
 // 교환품 수정
-router.put('/rewards/:id', async (req, res, next) => {
+router.post('/products', upload.none(), async (req, res, next) => {
    try {
-      const reward = await Reward.findByPk(req.params.id)
-      if (!reward) {
-         return res.status(404).json({ error: '교환품을 찾을 수 없습니다.' })
+      const { name, price, stock } = req.body
+
+      // 필수 필드 유효성 검사
+      if (!name || !price || !stock) {
+         return res.status(400).json({ message: '필수 필드를 전부 입력해야 합니다.' })
       }
-      await reward.update(req.body)
-      res.status(200).json({ message: '교환품이 성공적으로 업데이트되었습니다.', reward })
+
+      const newProduct = await Product.create({
+         name,
+         price,
+         stock,
+      })
+
+      res.status(201).json({ message: '교환품이 성공적으로 추가되었습니다.', product: newProduct })
    } catch (error) {
       next(error)
    }
 })
 
 // 교환품 삭제
-router.delete('/rewards/:id', async (req, res, next) => {
+router.delete('/products/:id', async (req, res, next) => {
    try {
       const reward = await Reward.findByPk(req.params.id)
       if (!reward) {
@@ -236,22 +337,22 @@ router.get('/statistics', async (req, res, next) => {
       // 주요 통계
       const newUsers = await User.count({
          where: {
-            createdAt: { [Op.gte]: startDAte },
+            createdAt: { [Op.gte]: startDate },
          },
       })
-      const newPosts = await Post.count({
+      const newPosts = await Board.count({
          where: {
-            createdAt: { [Op.gte]: startDAte },
+            createdAt: { [Op.gte]: startDate },
          },
       })
       const newComments = await Comment.count({
          where: {
-            createdAt: { [Op.gte]: startDAte },
+            createdAt: { [Op.gte]: startDate },
          },
       })
       const newReports = await Report.count({
          where: {
-            createdAt: { [Op.gte]: startDAte },
+            createdAt: { [Op.gte]: startDate },
          },
       })
 
@@ -262,39 +363,43 @@ router.get('/statistics', async (req, res, next) => {
             ['view_count', 'DESC'],
             ['like_count', 'DESC'],
          ],
-         attributes: ['title', 'view_count', 'like_count'],
+         attributes: ['title', 'view_count', 'like_count', [sequelize.fn('COUNT', sequelize.col('Comments.id')), 'comment_count']],
          include: [
             {
                model: Comment,
-               attributes: [[sequelize.fn('COUNT', sequelize.col('Comments.id')), 'comment_count']],
+               attributes: [],
             },
          ],
          group: ['Board.id'],
          raw: true,
          subQuery: false,
       })
+
       // 이용량 많은 사용자 5명
       const activeUsers = await User.findAll({
          attributes: [
-            ['name', 'nickname'], // 닉네임 필드명 수정
-            [sequelize.fn('COUNT', sequelize.col('Boards.id')), 'posts'], // 게시글 수
-            [sequelize.literal('(SELECT COUNT(*) FROM comments WHERE comments.user_id = `User`.id)'), 'comments'], // 댓글 수
-            [sequelize.literal('0'), 'points'], // 포인트 데이터가 없으므로 0으로 임시 설정
+            ['name', 'nickname'],
+            [sequelize.fn('COUNT', sequelize.col('Boards.id')), 'posts'],
+            [sequelize.fn('COUNT', sequelize.col('Comments.id')), 'comments'],
+            [sequelize.literal('0'), 'price'],
          ],
          include: [
             {
                model: Board,
                attributes: [],
             },
+            {
+               model: Comment,
+               attributes: [],
+            },
          ],
          group: ['User.id'],
-         order: [
-            [sequelize.literal('posts + comments'), 'DESC'], // 게시글 + 댓글 합산으로 정렬
-         ],
+         order: [[sequelize.literal('posts + comments'), 'DESC']],
          limit: 5,
          raw: true,
          subQuery: false,
       })
+
       // 카테고리별 게시글 분포
       const categoryDistribution = await Board.findAll({
          attributes: [
@@ -307,10 +412,11 @@ router.get('/statistics', async (req, res, next) => {
                attributes: [],
             },
          ],
-         group: ['category_name'],
+         group: ['Category.id'], // Category.id를 기준으로 그룹화
          raw: true,
          subQuery: false,
       })
+
       // 시간대별 활동 분포
       const hourlyActivity = await Board.findAll({
          attributes: [
