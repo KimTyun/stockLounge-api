@@ -19,7 +19,7 @@ module.exports = class User extends Sequelize.Model {
             },
             age: {
                type: DataTypes.INTEGER,
-               allowNull: false,
+               allowNull: true,
             },
             roles: {
                type: DataTypes.ENUM('USER', 'ADMIN'),
@@ -34,6 +34,10 @@ module.exports = class User extends Sequelize.Model {
             provider: {
                type: DataTypes.ENUM('KAKAO', 'GOOGLE'),
                allowNull: false,
+            },
+            profile_img: {
+               type: DataTypes.TEXT,
+               allowNull: true,
             },
          },
          {
@@ -51,6 +55,27 @@ module.exports = class User extends Sequelize.Model {
 
    static associate(db) {
       db.User.hasMany(db.Board, {
+         foreignKey: 'user_id',
+         sourceKey: 'id',
+      })
+      db.User.hasMany(db.BanUser, {
+         foreignKey: 'user_id',
+         sourceKey: 'id',
+      })
+      db.User.hasMany(db.Product, {
+         foreignKey: 'user_id',
+         sourceKey: 'id',
+      })
+      db.User.hasMany(db.Ban, {
+         foreignKey: 'admin_id',
+         sourceKey: 'id',
+         as: 'AdminBans',
+      })
+      db.User.hasOne(db.Reward, {
+         foreignKey: 'id',
+         sourceKey: 'id',
+      })
+      db.User.hasMany(db.RewardRecord, {
          foreignKey: 'user_id',
          sourceKey: 'id',
       })

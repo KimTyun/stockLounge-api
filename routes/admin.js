@@ -1,9 +1,11 @@
 const express = require('express')
 const router = express.Router()
-const { SiteSettings, BanWord, Reward, Report, Sanction, Transaction } = require('../models/admin.js')
-const { User, Board } = require('../models')
+const { BanWord, Reward, Report, Sanction } = require('../models')
+const { User, Board, Ban } = require('../models')
 const { sequelize } = require('../models/index.js')
 const { isAdmin } = require('../middleware/middleware.js')
+const { Op } = require('sequelize')
+const moment = require('moment')
 
 router.use(isAdmin)
 
@@ -21,18 +23,6 @@ router.get('/dashboard-data', async (req, res) => {
          adminAlerts: [],
       }
       res.status(200).json({ dashboardData })
-   } catch (error) {
-      next(error)
-   }
-})
-
-// 모든 이용자 정보 조회
-router.get('/users', async (req, res) => {
-   try {
-      const users = await User.findAll({
-         attributes: ['id', 'email', 'name', 'age', 'roles', 'is_ban', 'provider', 'createdAt'],
-      })
-      res.status(200).json({ users })
    } catch (error) {
       next(error)
    }
@@ -107,9 +97,16 @@ router.delete('/boards/:id', async (req, res) => {
 })
 
 // 금칙어 규칙 목록
-router.get('/ban-words', async (req, res) => {
+router.get('/ban-words', async (req, res, next) => {
    try {
-      const banWords = await BanWord.findAll()
+      const banWords = await Ban.findAll({
+         include: [
+            {
+               model: User,
+               attributes: ['email', 'name'],
+            },
+         ],
+      })
       res.status(200).json({ banWords })
    } catch (error) {
       next(error)
@@ -117,21 +114,23 @@ router.get('/ban-words', async (req, res) => {
 })
 
 // 금칙어 추가
-router.post('/ban-words', async (req, res) => {
+router.post('/ban-words', async (req, res, next) => {
    try {
       const { word } = req.body
-      if (!word) {
+      const adminId = req.user.id
+      if (!pattern) {
          return res.status(400).json({ error: '등록할 금칙어를 입력해주세요.' })
       }
-      const newBanWord = await BanWord.create({ word })
-      res.status(201).json({ message: '금칙어가 추가되었습니다.', banWord: newBanWord })
+
+      const newBanWord = await Ban.create({ pattern, description, admin_id: adminId })
+      res.status(201).json({ message: '금칙어가 성공적으로 추가되었습니다.', banWord: newBanWord })
    } catch (error) {
       next(error)
    }
 })
 
 // 금칙어 삭제
-router.delete('/ban-words/:id', async (req, res) => {
+router.delete('/ban-words/:id', async (req, res, next) => {
    try {
       const banWord = await BanWord.findByPk(req.params.id)
       if (!banWord) {
@@ -145,7 +144,7 @@ router.delete('/ban-words/:id', async (req, res) => {
 })
 
 // 사이트 관리
-router.get('/settings', async (req, res) => {
+router.get('/settings', async (req, res, next) => {
    try {
       const settings = await SiteSettings.findOne()
       if (!settings) {
@@ -158,7 +157,7 @@ router.get('/settings', async (req, res) => {
 })
 
 // 사이트 설정 업뎃
-router.put('/settings', async (req, res) => {
+router.put('/settings', async (req, res, next) => {
    try {
       // DB에 생성데이터 있나 확인, 없으면 생성 있으면 업뎃
       const [settings, created] = await SiteSettings.findOrCreate({
@@ -175,18 +174,8 @@ router.put('/settings', async (req, res) => {
    }
 })
 
-// 교환품 조회
-router.get('/rewards', async (req, res) => {
-   try {
-      const rewards = await Reward.findAll()
-      res.status(200).json({ rewards })
-   } catch (error) {
-      next(error)
-   }
-})
-
 // 교환품 생성
-router.post('/rewards', async (req, res) => {
+router.post('/rewards', async (req, res, next) => {
    try {
       const { name, points, stock } = req.body
       const pointsNum = Number(points)
@@ -202,7 +191,7 @@ router.post('/rewards', async (req, res) => {
 })
 
 // 교환품 수정
-router.put('/rewards/:id', async (req, res) => {
+router.put('/rewards/:id', async (req, res, next) => {
    try {
       const reward = await Reward.findByPk(req.params.id)
       if (!reward) {
@@ -216,7 +205,7 @@ router.put('/rewards/:id', async (req, res) => {
 })
 
 // 교환품 삭제
-router.delete('/rewards/:id', async (req, res) => {
+router.delete('/rewards/:id', async (req, res, next) => {
    try {
       const reward = await Reward.findByPk(req.params.id)
       if (!reward) {
@@ -230,22 +219,124 @@ router.delete('/rewards/:id', async (req, res) => {
 })
 
 // 통계
-router.get('/statistics', async (req, res) => {
+router.get('/statistics', async (req, res, next) => {
    try {
-      // 일, 주, 월별 통계 데이터 조회
-      const dailyUsersStats = await User.count({
-         group: [sequelize.fn('date', sequelize.col('createdAt'))],
-      })
-      const dailyPostsStats = await Board.count({
-         group: [sequelize.fn('date', sequelize.col('createdAt'))],
-      })
-      const stats = {
-         dailyUsersStats: dailyUsersStats,
-         dailyPostsStats: dailyPostsStats,
+      const { period = 'week' } = req.query
+      const now = new Date()
+      let startDate
+
+      if (period === 'month') {
+         startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+      } else if (period === 'year') {
+         startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+      } else {
+         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
       }
-      res.status(200).json({ stats })
+
+      // 주요 통계
+      const newUsers = await User.count({
+         where: {
+            createdAt: { [Op.gte]: startDAte },
+         },
+      })
+      const newPosts = await Post.count({
+         where: {
+            createdAt: { [Op.gte]: startDAte },
+         },
+      })
+      const newComments = await Comment.count({
+         where: {
+            createdAt: { [Op.gte]: startDAte },
+         },
+      })
+      const newReports = await Report.count({
+         where: {
+            createdAt: { [Op.gte]: startDAte },
+         },
+      })
+
+      // 인기 게시글 5개
+      const popularPosts = await Board.findAll({
+         limit: 5,
+         order: [
+            ['view_count', 'DESC'],
+            ['like_count', 'DESC'],
+         ],
+         attributes: ['title', 'view_count', 'like_count'],
+         include: [
+            {
+               model: Comment,
+               attributes: [[sequelize.fn('COUNT', sequelize.col('Comments.id')), 'comment_count']],
+            },
+         ],
+         group: ['Board.id'],
+         raw: true,
+         subQuery: false,
+      })
+      // 이용량 많은 사용자 5명
+      const activeUsers = await User.findAll({
+         attributes: [
+            ['name', 'nickname'], // 닉네임 필드명 수정
+            [sequelize.fn('COUNT', sequelize.col('Boards.id')), 'posts'], // 게시글 수
+            [sequelize.literal('(SELECT COUNT(*) FROM comments WHERE comments.user_id = `User`.id)'), 'comments'], // 댓글 수
+            [sequelize.literal('0'), 'points'], // 포인트 데이터가 없으므로 0으로 임시 설정
+         ],
+         include: [
+            {
+               model: Board,
+               attributes: [],
+            },
+         ],
+         group: ['User.id'],
+         order: [
+            [sequelize.literal('posts + comments'), 'DESC'], // 게시글 + 댓글 합산으로 정렬
+         ],
+         limit: 5,
+         raw: true,
+         subQuery: false,
+      })
+      // 카테고리별 게시글 분포
+      const categoryDistribution = await Board.findAll({
+         attributes: [
+            [sequelize.col('Category.category'), 'category_name'],
+            [sequelize.fn('COUNT', sequelize.col('Board.id')), 'post_count'],
+         ],
+         include: [
+            {
+               model: Category,
+               attributes: [],
+            },
+         ],
+         group: ['category_name'],
+         raw: true,
+         subQuery: false,
+      })
+      // 시간대별 활동 분포
+      const hourlyActivity = await Board.findAll({
+         attributes: [
+            [sequelize.fn('HOUR', sequelize.col('createdAt')), 'hour'],
+            [sequelize.fn('COUNT', sequelize.col('id')), 'post_count'],
+         ],
+         group: [sequelize.fn('HOUR', sequelize.col('createdAt'))],
+         raw: true,
+         subQuery: false,
+      })
+
+      res.status(200).json({
+         mainStats: {
+            newUsers,
+            newPosts,
+            newComments,
+            newReports,
+         },
+         popularPosts,
+         activeUsers,
+         categoryDistribution,
+         hourlyActivity,
+      })
    } catch (error) {
       next(error)
    }
 })
+
 module.exports = router
