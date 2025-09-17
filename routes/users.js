@@ -121,7 +121,7 @@ router.get('/me/posts', isLoggedIn, async (req, res, next) => {
       }
       const offset = (page - 1) * limit
 
-      const posts = await Board.findAll({
+      const { count, rows: posts } = await Board.findAndCountAll({
          where: { user_id: req.user.id },
          order: [['createdAt', 'DESC']],
          limit,
@@ -130,7 +130,7 @@ router.get('/me/posts', isLoggedIn, async (req, res, next) => {
 
       res.send({
          success: true,
-         data: posts,
+         data: { posts, count },
       })
    } catch (error) {
       next(error)
@@ -150,7 +150,7 @@ router.get('/me/comments', isLoggedIn, async (req, res, next) => {
       }
       const offset = (page - 1) * limit
 
-      const comments = await Comment.findAll({
+      const { count, rows: comments } = await Comment.findAndCountAll({
          where: { user_id: req.user.id },
          order: [['createdAt', 'DESC']],
          limit,
@@ -159,7 +159,7 @@ router.get('/me/comments', isLoggedIn, async (req, res, next) => {
 
       res.send({
          success: true,
-         data: comments,
+         data: { comments, count },
       })
    } catch (error) {
       next(error)
@@ -180,7 +180,7 @@ router.get('/me/reward', isLoggedIn, async (req, res, next) => {
       const offset = (page - 1) * limit
 
       const reward = await Reward.findOne({ where: { id: req.user.id } })
-      const data = await RewardRecord.findAll({ where: { user_id: req.user.id }, limit, offset })
+      const { count, rows: data } = await RewardRecord.findAndCountAll({ where: { user_id: req.user.id }, limit, offset })
 
       res.json({
          success: true,
@@ -188,6 +188,7 @@ router.get('/me/reward', isLoggedIn, async (req, res, next) => {
             data,
             accumulated_point: reward.accumulated_point,
             point: reward.point,
+            count,
          },
       })
    } catch (error) {

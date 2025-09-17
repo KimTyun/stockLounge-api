@@ -1,6 +1,6 @@
 require('dotenv').config()
 const GoogleStrategy = require('passport-google-oauth20').Strategy
-const { sequelize, Reward, User } = require('../models')
+const { sequelize, Reward, User, RewardRecord } = require('../models')
 const passport = require('passport')
 
 module.exports = () => {
@@ -38,15 +38,24 @@ module.exports = () => {
                   { transaction }
                )
 
-               await Reward.create(
+               const newUserReward = await Reward.create(
                   {
                      id: newUser.id,
-                     accumulated_point: 0,
-                     point: 0,
+                     accumulated_point: 100,
+                     point: 100,
                      coin: 0,
                   },
                   { transaction }
                )
+               await RewardRecord.create(
+                  {
+                     user_id: newUser.id,
+                     change: 100,
+                     reason: '첫 가입 보너스',
+                  },
+                  { transaction }
+               )
+
                await transaction.commit()
                return done(null, newUser)
             } catch (error) {
