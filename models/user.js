@@ -39,6 +39,10 @@ module.exports = class User extends Sequelize.Model {
                type: DataTypes.TEXT,
                allowNull: true,
             },
+            wallet: {
+               type: DataTypes.TEXT,
+               allowNull: true,
+            },
          },
          {
             sequelize,

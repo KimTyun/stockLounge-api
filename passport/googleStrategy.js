@@ -34,6 +34,7 @@ module.exports = () => {
                      profile_img: profile?.photos[0]?.value,
                      provider: 'GOOGLE',
                      roles: 'USER',
+                     wallet: '1YoURbKATcoiN99acWaLtejiDVDdRess72', //가상 가상화폐지갑
                   },
                   { transaction }
                )

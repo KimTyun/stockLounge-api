@@ -86,6 +86,7 @@ router.put('/me/profile-img', isLoggedIn, upload.single('file'), async (req, res
          error.status = 400
          throw error
       }
+      const oldProfileImg = user.profile_img
 
       //유저 프로필사진 업데이트
       await user.update({
@@ -93,8 +94,8 @@ router.put('/me/profile-img', isLoggedIn, upload.single('file'), async (req, res
       })
 
       //프로필 변경 완료 후 기존 프로필 사진이 있을 경우 삭제(구글 프로필 사진은 파일 존재 x)
-      if (user.profile_img) {
-         const filePath = path.join(__dirname, '..', user.profile_img)
+      if (oldProfileImg) {
+         const filePath = path.join(__dirname, '..', oldProfileImg)
          if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath)
          }
@@ -189,6 +190,7 @@ router.get('/me/reward', isLoggedIn, async (req, res, next) => {
             accumulated_point: reward.accumulated_point,
             point: reward.point,
             count,
+            coin: reward.coin,
          },
       })
    } catch (error) {
