@@ -35,9 +35,5 @@ module.exports = class RewardRecord extends Sequelize.Model {
          foreignKey: 'user_id',
          targetKey: 'id',
       })
-      db.RewardRecord.belongsTo(db.RewardItem, {
-         foreignKey: 'reward_item_id',
-         targetKey: 'id',
-      })
    }
 }
