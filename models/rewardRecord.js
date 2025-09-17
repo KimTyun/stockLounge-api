@@ -9,13 +9,17 @@ module.exports = class RewardRecord extends Sequelize.Model {
                allowNull: false,
             },
             reason: {
-               type: DataTypes.ENUM('ADD', 'COIN_CHANGE', 'PRODUCT_CHANGE'),
+               type: DataTypes.STRING(255),
                allowNull: false,
+            },
+            reward_item_id: {
+               type: DataTypes.INTEGER,
+               allowNull: true,
             },
          },
          {
             sequelize,
-            timestamps: false,
+            timestamps: true,
             underscored: true,
             modelName: 'RewardRecord',
             tableName: 'reward_records',
@@ -29,6 +33,10 @@ module.exports = class RewardRecord extends Sequelize.Model {
    static associate(db) {
       db.RewardRecord.belongsTo(db.Reward, {
          foreignKey: 'user_id',
+         targetKey: 'id',
+      })
+      db.RewardRecord.belongsTo(db.RewardItem, {
+         foreignKey: 'reward_item_id',
          targetKey: 'id',
       })
    }
