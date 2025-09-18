@@ -60,6 +60,14 @@ try {
   console.log("uploads 폴더가 없어 uploads 폴더를 생성합니다.")
   fs.mkdirSync("uploads") // 폴더 생성
 }
+try {
+  fs.readdirSync("uploads/products")
+} catch (error) {
+  console.log(
+    "uploads/products 폴더가 없어 uploads/products 폴더를 생성합니다."
+  )
+  fs.mkdirSync("uploads/products")
+}
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
 // 라우터 가져오기
