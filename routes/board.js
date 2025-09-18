@@ -10,6 +10,7 @@ const {
 } = require("../models")
 const fs = require("fs")
 require("dotenv").config()
+const { givePoints } = require("../utils/rewardUtils")
 const router = express.Router()
 
 // 댓글 등록
@@ -33,6 +34,11 @@ router.post("/:id/comment", async (req, res, next) => {
       board_id: boardId,
       parent_id: parent_id || null,
     })
+
+    // 댓글 작성 포인트 지급 (1점)
+    if (user_id) {
+      await givePoints(user_id, 1, "댓글 작성")
+    }
 
     res.status(201).json({
       success: true,
@@ -60,7 +66,7 @@ router.get("/:id/comments", async (req, res, next) => {
     // 댓글 목록 조회
     const comments = await Comment.findAll({
       where: { board_id: boardId },
-      order: [["createdAt", "DESC"]],
+      order: [["created_at", "DESC"]],
     })
 
     res.json({
@@ -235,7 +241,13 @@ router.post("/write", upload.single("file"), async (req, res, next) => {
       category: categoryRecord.id,
       // 이미지 파일이 있으면 파일명 저장
       board_img: req.file ? req.file.filename : null,
+      view_count: 0,
     })
+
+    // 게시글 작성 포인트 지급 (5점)
+    if (newBoard.user_id) {
+      await givePoints(newBoard.user_id, 5, "게시글 작성")
+    }
 
     res.status(201).json({
       success: true,
@@ -265,6 +277,10 @@ router.get("/:id", async (req, res, next) => {
       return next(error)
     }
 
+    // 조회수 증가
+    const newViewCount = (board.view_count || 0) + 1
+    await board.update({ view_count: newViewCount })
+
     let isLiked = false
     if (userId) {
       const like = await BoardLike.findOne({
@@ -277,6 +293,7 @@ router.get("/:id", async (req, res, next) => {
       message: "게시글 조회 성공",
       data: {
         ...board.toJSON(),
+        view_count: newViewCount,
         isLiked,
       },
     })
@@ -399,6 +416,11 @@ router.post("/:id/like", async (req, res, next) => {
       const likeCount = await BoardLike.count({ where: { board_id: boardId } })
       await board.update({ like_count: likeCount })
 
+      // 게시글 작성자에게 포인트 지급 (10점)
+      if (board.user_id) {
+        await givePoints(board.user_id, 10, "게시글 추천 받음")
+      }
+
       return res.json({
         success: true,
         message: "게시글 좋아요",
@@ -470,6 +492,11 @@ router.post("/comment/:commentId/like", async (req, res, next) => {
         where: { comment_id: commentId },
       })
       await comment.update({ like_count: likeCount })
+
+      // 댓글 작성자에게 포인트 지급 (10점)
+      if (comment.user_id) {
+        await givePoints(comment.user_id, 10, "댓글 추천 받음")
+      }
 
       return res.json({
         success: true,

@@ -69,6 +69,7 @@ const adminRouter = require("./routes/admin.js")
 const userRouter = require("./routes/users.js")
 const authRouter = require("./routes/auth.js")
 const rewardRouter = require("./routes/reward.js")
+const reportRouter = require("./routes/report.js")
 
 // 라우터 연결
 app.use("/news", naverNewsRouter)
@@ -77,6 +78,7 @@ app.use("/admin", adminRouter)
 app.use("/users", userRouter)
 app.use("/auth", authRouter)
 app.use("/reward", rewardRouter)
+app.use("/report", reportRouter)
 
 app.get("/", (req, res) => {
   res.send("서버실행중")
