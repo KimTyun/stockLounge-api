@@ -1,7 +1,7 @@
 const express = require('express')
 const multer = require('multer')
 const path = require('path')
-const { Board, Comment, Category, BoardLike, CommentLike } = require('../models')
+const { Board, Comment, Category, BoardLike, CommentLike, User } = require('../models')
 const fs = require('fs')
 require('dotenv').config()
 const { givePoints } = require('../utils/rewardUtils')
@@ -26,7 +26,6 @@ router.post('/:id/comment', async (req, res, next) => {
          content,
          user_id,
          board_id: boardId,
-         parent_id: parent_id || null,
       })
 
       // 댓글 작성 포인트 지급 (1점)
@@ -61,6 +60,12 @@ router.get('/:id/comments', async (req, res, next) => {
       const comments = await Comment.findAll({
          where: { board_id: boardId },
          order: [['created_at', 'DESC']],
+         include: [
+            {
+               model: User,
+               attributes: ['name', 'profile_img'],
+            },
+         ],
       })
 
       res.json({
@@ -172,6 +177,12 @@ router.get('/', async (req, res, next) => {
          attributes: ['id', 'user_id', 'title', 'content', 'category', 'like_count', 'report_count', 'board_img', 'view_count', 'created_at', 'updated_at'],
          where: whereCondition,
          order: [['created_at', 'DESC']],
+         include: [
+            {
+               model: User,
+               attributes: ['name', 'profile_img'],
+            },
+         ],
       })
 
       // 각 게시글의 댓글 수를 별도로 조회
@@ -200,7 +211,7 @@ router.get('/', async (req, res, next) => {
 // 게시글 등록
 router.post('/write', upload.single('file'), async (req, res, next) => {
    try {
-      const { title, content, category } = req.body
+      const { title, content, category, user_id } = req.body
 
       // 카테고리 가져오기 또는 생성
       const [categoryRecord, created] = await Category.findOrCreate({
@@ -215,6 +226,7 @@ router.post('/write', upload.single('file'), async (req, res, next) => {
          // 이미지 파일이 있으면 파일명 저장
          board_img: req.file ? req.file.filename : null,
          view_count: 0,
+         user_id,
       })
 
       // 게시글 작성 포인트 지급 (5점)
