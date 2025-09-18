@@ -58,7 +58,9 @@ router.put('/me', isLoggedIn, async (req, res, next) => {
    try {
       const { name, pw, age } = req.body
 
-      const hash = await bcrypt.hash(pw, 10)
+      let hash
+      if (pw) hash = await bcrypt.hash(pw, 10)
+
       const user = await User.findByPk(req.user.id)
 
       await user.update({
