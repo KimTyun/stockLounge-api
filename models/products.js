@@ -19,6 +19,7 @@ module.exports = class Product extends Sequelize.Model {
             serial_no: {
                type: DataTypes.STRING(255),
                allowNull: true,
+               unique: true,
             },
             stock: {
                type: DataTypes.INTEGER,
@@ -29,10 +30,14 @@ module.exports = class Product extends Sequelize.Model {
                type: DataTypes.STRING(255),
                allowNull: true,
             },
+            product_list_id: {
+               type: DataTypes.UUID,
+               allowNull: false,
+            },
          },
          {
             sequelize,
-            timestamps: false,
+            timestamps: true,
             underscored: true,
             modelName: 'Product',
             tableName: 'product',
@@ -43,5 +48,10 @@ module.exports = class Product extends Sequelize.Model {
    }
    static associate(db) {
       db.Product.belongsTo(db.User, { foreignKey: 'user_id', targetKey: 'id' })
+
+      db.Product.belongsTo(db.ProductList, {
+         foreignKey: 'product_list_id',
+         targetKey: 'id',
+      })
    }
 }
