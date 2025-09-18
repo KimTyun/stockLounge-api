@@ -156,7 +156,7 @@ router.put('/get', isLoggedIn, async (req, res, next) => {
          throw error
       }
 
-      const reward = await Reward.findByPk(req.user.id)
+      const reward = await Reward.findByPk(req.user.id, { transaction, lock: transaction.LOCK.UPDATE })
       await reward.update(
          {
             point: reward.point + point,
@@ -168,7 +168,7 @@ router.put('/get', isLoggedIn, async (req, res, next) => {
       await RewardRecord.create(
          {
             change: point,
-            raeson: `${type === 'board' ? '게시글' : '댓글'} 작성`,
+            reason: `${type === 'board' ? '게시글' : '댓글'} 작성`,
             user_id: req.user.id,
          },
          { transaction }
