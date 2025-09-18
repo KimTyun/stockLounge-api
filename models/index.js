@@ -1,26 +1,42 @@
-const Sequelize = require('sequelize')
-require('dotenv').config()
+const Sequelize = require("sequelize")
+require("dotenv").config()
 
-const env = process.env.NODE_ENV || 'development'
-const config = require('../config/config')[env]
+const env = process.env.NODE_ENV || "development"
+const config = require("../config/config")[env]
 
 const db = {}
 
-const sequelize = new Sequelize(config.database, config.username, config.password, config)
+const sequelize = new Sequelize(
+  config.database,
+  config.username,
+  config.password,
+  config
+)
 
-const User = require('./user')
-const Board = require('./board')
-const Category = require('./category')
-const Comment = require('./comment')
-const Reward = require('./reward')
-const RewardRecord = require('./rewardRecord')
-const BoardLike = require('./board_like')
-const CommentLike = require('./comment_like')
-const BanUser = require('./ban_user')
-const Product = require('./products')
-const Ban = require('./ban')
-const RewardItem = require('./rewardItem')
-const SiteSettings = require('./site_settings')
+const User = require("./user")
+const Board = require("./board")
+const Category = require("./category")
+const Comment = require("./comment")
+const Reward = require("./reward")
+const RewardRecord = require("./rewardRecord")
+const BoardLike = require("./board_like")
+const CommentLike = require("./comment_like")
+const BanUser = require("./ban_user")
+const Product = require("./products")
+const Ban = require("./ban")
+const RewardItem = require("./rewardItem")
+const Report = require("./report")
+const User = require("./user")
+const Board = require("./board")
+const Category = require("./category")
+const Comment = require("./comment")
+const Reward = require("./reward")
+const RewardRecord = require("./rewardRecord")
+const BanUser = require("./ban_user")
+const Product = require("./products")
+const Ban = require("./ban")
+const RewardItem = require("./rewardItem")
+const SiteSettings = require("./site_settings")
 
 db.sequelize = sequelize
 db.User = User
@@ -35,6 +51,7 @@ db.BanUser = BanUser
 db.Product = Product
 db.Ban = Ban
 db.RewardItem = RewardItem
+db.Report = Report
 db.SiteSettings = SiteSettings
 
 User.init(sequelize)
@@ -49,6 +66,7 @@ BanUser.init(sequelize)
 Product.init(sequelize)
 Ban.init(sequelize)
 RewardItem.init(sequelize)
+Report.init(sequelize)
 SiteSettings.init(sequelize)
 
 User.associate && User.associate(db)
@@ -63,6 +81,7 @@ BanUser.associate && BanUser.associate(db)
 Product.associate && Product.associate(db)
 Ban.associate && Ban.associate(db)
 RewardItem.associate && RewardItem.associate(db)
+Report.associate && Report.associate(db)
 SiteSettings.associate && SiteSettings.associate(db)
 
 module.exports = db

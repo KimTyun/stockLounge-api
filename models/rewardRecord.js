@@ -4,6 +4,14 @@ module.exports = class RewardRecord extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
+            user_id: {
+               type: DataTypes.INTEGER,
+               allowNull: false,
+               references: {
+                  model: 'users',
+                  key: 'id',
+               },
+            },
             change: {
                type: DataTypes.INTEGER,
                allowNull: false,
