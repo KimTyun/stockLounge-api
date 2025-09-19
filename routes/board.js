@@ -1,7 +1,7 @@
 const express = require('express')
 const multer = require('multer')
 const path = require('path')
-const { Board, Comment, Category, BoardLike, CommentLike, User } = require('../models')
+const { Board, Comment, Category, BoardLike, CommentLike, User, Ban } = require('../models')
 const fs = require('fs')
 require('dotenv').config()
 const { givePoints } = require('./reward')
@@ -12,7 +12,7 @@ const { isLoggedIn } = require('../middleware/middleware')
 router.post('/:id/comment', async (req, res, next) => {
    try {
       const boardId = req.params.id
-      const { content, user_id, parent_id } = req.body
+      const { content, user_id } = req.body
 
       // 게시글이 존재하는지 확인
       const board = await Board.findByPk(boardId)
@@ -20,6 +20,18 @@ router.post('/:id/comment', async (req, res, next) => {
          const error = new Error('게시글을 찾을 수 없습니다.')
          error.status = 404
          return next(error)
+      }
+      const ban = await Ban.findAll()
+      const banWord = ban.some((word) => content.includes(word.pattern))
+
+      // ban 단어가 있을시에 false 반환
+      if (banWord) {
+         return res.status(200).json({
+            success: false,
+            showModal: true,
+            message: '부적절한 단어가 포함되어 있습니다.',
+            modalType: 'warning',
+         })
       }
 
       // 댓글 생성
@@ -220,6 +232,20 @@ router.post('/write', upload.single('file'), async (req, res, next) => {
          defaults: { category },
       })
 
+      const ban = await Ban.findAll()
+      const banTitle = ban.some((word) => title.includes(word.pattern))
+      const banContent = ban.some((word) => content.includes(word.pattern))
+
+      // ban 단어가 있을시에 false 반환
+      if (banTitle || banContent) {
+         return res.status(200).json({
+            success: false,
+            showModal: true,
+            message: '부적절한 단어가 포함되어 있습니다.',
+            modalType: 'warning',
+         })
+      }
+
       const newBoard = await Board.create({
          title,
          content,
@@ -329,37 +355,37 @@ router.put('/:id', upload.single('file'), async (req, res, next) => {
       const id = req.params.id
       const { title, content, category } = req.body
 
-      // 게시글이 존재하는지 확인
       const board = await Board.findByPk(id)
       if (!board) {
-         const error = new Error('게시글을 찾을 수 없습니다.')
-         error.status = 404
-         return next(error)
+         return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' })
       }
 
-      const updateData = {
-         title,
-         content,
-         category,
+      // 금칙어 체크
+      const ban = await Ban.findAll()
+      const banTitle = ban.some((word) => title.includes(word.pattern))
+      const banContent = ban.some((word) => content.includes(word.pattern))
+
+      if (banTitle || banContent) {
+         return res.status(200).json({
+            success: false,
+            showModal: true,
+            message: '부적절한 단어가 포함되어 있습니다.',
+            modalType: 'warning',
+         })
       }
 
-      // 파일이 있으면 기존 파일 삭제 후 새 파일 저장
+      const updateData = { title, content, category }
+
       if (req.file) {
          if (board.board_img) {
             const oldPath = path.join(__dirname, '..', 'uploads', board.board_img)
             fs.unlink(oldPath, (err) => {
-               if (err) {
-                  console.error('기존 이미지 삭제 실패:', err)
-               } else {
-                  console.log('기존 이미지 삭제 성공:', board.board_img)
-               }
+               if (err) console.error('기존 이미지 삭제 실패:', err)
             })
          }
-
          updateData.board_img = req.file.filename
       }
 
-      // DB 업데이트
       await board.update(updateData)
 
       res.json({
