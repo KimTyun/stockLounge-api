@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { User, Board, Ban, Product, Report, Sanction, Comment, Category, SiteSettings, Reward, BanUser } = require('../models')
+const { User, Board, Ban, Product, Report, Sanction, Comment, Category, SiteSettings, Reward, ProductList } = require('../models')
 const { sequelize } = require('../models/index.js')
 const db = require('../models')
 const { isAdmin } = require('../middleware/middleware.js')
@@ -36,11 +36,6 @@ router.get('/dashboard-data', async (req, res, next) => {
 // 사용자 목록 조회
 router.get('/users', async (req, res, next) => {
    try {
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private')
-
-      res.set('Pragma', 'no-cache')
-
-      res.set('Expires', '0')
       const users = await User.findAll({
          attributes: ['id', 'email', ['name', 'nickname'], 'is_ban', ['createdAt', 'joinDate'], [sequelize.col('updatedAt'), 'lastLogin']],
          include: [
@@ -53,6 +48,32 @@ router.get('/users', async (req, res, next) => {
          ],
          order: [['createdAt', 'DESC']],
       })
+
+      // 각 사용자의 신고 횟수 조회 및 is_ban 설정
+      for (let user of users) {
+         // 정지받은 놈은 is_ban 3 우선
+         if (user.is_ban === true || user.is_ban === 3) {
+            user.dataValues.is_ban = 3
+         } else {
+            // Report 테이블에서 reported_user_id를 기준으로 신고 횟수 카운트
+            const reportCount = await Report.count({
+               where: {
+                  reported_user_id: user.id,
+                  status: 'pending', // 처리되지 않은 신고만 카운트
+               },
+            })
+
+            // 신고 횟수에 따라 is_ban 값을 숫자(0, 1, 2)로 결정
+            if (reportCount >= 5) {
+               user.dataValues.is_ban = 2 // 경고
+            } else if (reportCount >= 3) {
+               user.dataValues.is_ban = 1 // 주의
+            } else {
+               user.dataValues.is_ban = 0 // 양호
+            }
+         }
+      }
+
       res.status(200).json({ data: users })
    } catch (error) {
       next(error)
@@ -385,6 +406,55 @@ router.delete('/product-lists/:id', async (req, res, next) => {
    }
 })
 
+// 게시판 목록 조회
+router.get('/boards', async (req, res, next) => {
+   try {
+      const { page = 1, limit = 10, search = '' } = req.query
+      const offset = (page - 1) * limit
+
+      const whereCondition = { deleted_at: null }
+      if (search) {
+         whereCondition[Op.or] = [{ title: { [Op.like]: `%${search}%` } }, { content: { [Op.like]: `%${search}%` } }]
+      }
+
+      const { rows, count } = await Board.findAndCountAll({
+         where: whereCondition,
+         attributes: ['id', 'title', 'user_id', 'view_count', 'like_count', 'created_at', 'deleted_at'],
+         include: [{ model: User, attributes: ['name'], as: 'User' }],
+         order: [['created_at', 'DESC']],
+         limit: parseInt(limit, 10),
+         offset: parseInt(offset, 10),
+      })
+
+      res.status(200).json({
+         data: rows,
+         total: count,
+         page: parseInt(page, 10),
+         limit: parseInt(limit, 10),
+      })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 특정 게시글 삭제
+router.delete('/board/:id', async (req, res, next) => {
+   try {
+      const { id } = req.params
+      const board = await Board.findByPk(id)
+
+      if (!board) {
+         const error = new Error('게시글을 찾을 수 없습니다.')
+         return next(error)
+      }
+
+      await board.destroy()
+      res.status(200).json({ message: '게시글이 성공적으로 삭제되었습니다.' })
+   } catch (error) {
+      next(error)
+   }
+})
+
 // 통계
 router.get('/statistics', async (req, res, next) => {
    try {
@@ -409,7 +479,7 @@ router.get('/statistics', async (req, res, next) => {
 
       const [newUsers, newPosts, newComments, newReports] = await Promise.all([
          User.count({ where: { createdAt: { [Op.gte]: startDate } } }),
-         Board.count({ where: { createdAt: { [Op.gte]: startDate } } }),
+         Board.count({ where: { deleted_at: null, created_at: { [Op.gte]: startDate } } }),
          Comment.count({ where: { createdAt: { [Op.gte]: startDate } } }),
          Report.count({ where: { createdAt: { [Op.gte]: startDate } } }),
       ])
@@ -426,7 +496,8 @@ router.get('/statistics', async (req, res, next) => {
          }),
          Board.count({
             where: {
-               createdAt: {
+               deleted_at: null,
+               created_at: {
                   [Op.gte]: previousStartDate,
                   [Op.lt]: previousEndDate,
                },
@@ -456,6 +527,10 @@ router.get('/statistics', async (req, res, next) => {
          return ((current - previous) / previous) * 100
       }
 
+      // Mock 데이터를 실제 데이터로 대체
+      const visitors = { current: newPosts + newComments, previous: prevNewPosts + prevNewComments, change: calculateChange(newPosts + newComments, prevNewPosts + prevNewComments) }
+      const pageViews = { current: 0, previous: 0, change: 0 } // 페이지뷰 데이터는 백엔드에서 추적하지 않으므로 임시로 0으로 설정
+
       // 인기 게시글 5개 (댓글 수 포함) - 에러 처리 개선
       let popularPosts = []
       try {
@@ -469,7 +544,8 @@ router.get('/statistics', async (req, res, next) => {
                },
             ],
             where: {
-               createdAt: { [Op.gte]: startDate },
+               deleted_at: null,
+               created_at: { [Op.gte]: startDate },
             },
             group: ['Board.id', 'Board.title', 'Board.view_count', 'Board.like_count'],
             order: [
@@ -489,19 +565,14 @@ router.get('/statistics', async (req, res, next) => {
       let activeUsers = []
       try {
          activeUsers = await User.findAll({
-            attributes: [
-               'id',
-               'name',
-               [sequelize.fn('COUNT', sequelize.col('Boards.id')), 'postCount'],
-               // comments.createdAt → comments.created_at로 수정
-               [sequelize.literal('(SELECT COUNT(*) FROM comments WHERE comments.user_id = User.id AND comments.created_at >= ?)'), 'commentCount'],
-            ],
+            attributes: ['id', 'name', [sequelize.fn('COUNT', sequelize.col('Boards.id')), 'postCount'], [sequelize.literal('(SELECT COUNT(*) FROM comments WHERE comments.user_id = User.id AND comments.created_at >= ?)'), 'commentCount']],
             include: [
                {
                   model: Board,
                   attributes: [],
                   where: {
-                     createdAt: { [Op.gte]: startDate },
+                     created_at: { [Op.gte]: startDate },
+                     deleted_at: null,
                   },
                   required: false,
                },
@@ -534,10 +605,12 @@ router.get('/statistics', async (req, res, next) => {
                {
                   model: Category,
                   attributes: [],
+                  required: true, // 카테고리가 없는 게시글은 제외
                },
             ],
             where: {
-               createdAt: { [Op.gte]: startDate },
+               deleted_at: null,
+               created_at: { [Op.gte]: startDate },
             },
             group: ['Category.category'],
             raw: true,
@@ -554,15 +627,14 @@ router.get('/statistics', async (req, res, next) => {
       try {
          hourlyActivity = await Board.findAll({
             attributes: [
-               // Board.createdAt → Board.created_at로 수정
-               [sequelize.fn('HOUR', sequelize.col('Board.created_at')), 'hour'],
-               [sequelize.fn('COUNT', sequelize.col('Board.id')), 'post_count'],
+               [sequelize.fn('HOUR', sequelize.col('created_at')), 'hour'],
+               [sequelize.fn('COUNT', sequelize.col('id')), 'post_count'],
             ],
             where: {
-               createdAt: { [Op.gte]: startDate },
+               deleted_at: null,
+               created_at: { [Op.gte]: startDate },
             },
-            // GROUP BY도 수정
-            group: [sequelize.fn('HOUR', sequelize.col('Board.created_at'))],
+            group: [sequelize.fn('HOUR', sequelize.col('created_at'))],
             raw: true,
             subQuery: false,
          })
@@ -575,17 +647,9 @@ router.get('/statistics', async (req, res, next) => {
       const responseData = {
          mainStats: {
             // 방문자 통계 (임시)
-            visitors: {
-               current: mockVisitorData.current,
-               previous: mockVisitorData.previous,
-               change: calculateChange(mockVisitorData.current, mockVisitorData.previous),
-            },
+            visitors: visitors,
             // 페이지뷰 통계 (임시)
-            pageViews: {
-               current: mockPageViewData.current,
-               previous: mockPageViewData.previous,
-               change: calculateChange(mockPageViewData.current, mockPageViewData.previous),
-            },
+            pageViews: pageViews,
             // 실제 데이터
             newUsers: {
                current: newUsers,
