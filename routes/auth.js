@@ -48,7 +48,7 @@ router.post('/logout', isLoggedIn, (req, res, next) => {
 
 //구글 로그인
 router.get(
-   '/google/login',
+   '/google',
    passport.authenticate('google', {
       scope: ['profile', 'email'],
       prompt: 'select_account',

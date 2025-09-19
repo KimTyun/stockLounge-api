@@ -1,10 +1,6 @@
 exports.isAdmin = (req, res, next) => {
-   console.log('개발 모드: 모든 사용자를 관리자로 승인하고 req.user를 가상으로 생성합니다.')
-   if (!req.user) {
-      req.user = {
-         id: 1,
-         roles: ['admin'],
-      }
+   if (!req.user || req.user.roles !== 'ADMIN') {
+      return res.status(403).json({ message: '접근 권한이 없습니다.' })
    }
    next()
 }

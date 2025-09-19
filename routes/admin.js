@@ -4,6 +4,7 @@ const { User, Board, Ban, Product, Report, Sanction, Comment, Category, SiteSett
 const { sequelize } = require('../models/index.js')
 const db = require('../models')
 const { isAdmin } = require('../middleware/middleware.js')
+const { isLoggedIn } = require('../middleware/middleware.js')
 const { Op } = require('sequelize')
 const dayjs = require('dayjs')
 const multer = require('multer')
@@ -13,6 +14,28 @@ const upload = multer({
 })
 
 router.use(isAdmin)
+
+// 사용자 관리자 권한 확인
+router.get('/user-status', async (req, res, next) => {
+   try {
+      if (!req.user) {
+         return res.status(401).json({ message: '관리자 인증 정보가 유효하지 않습니다.' })
+      }
+
+      const userStatus = {
+         id: req.user.id,
+         email: req.user.email,
+         roles: req.user.roles,
+      }
+
+      res.status(200).json({
+         message: '사용자 권한 정보 조회 성공',
+         data: userStatus,
+      })
+   } catch (error) {
+      next(error)
+   }
+})
 
 // 대시보드
 router.get('/dashboard-data', async (req, res, next) => {
@@ -178,7 +201,6 @@ router.get('/ban-words', async (req, res, next) => {
 
       res.status(200).json({ data: banWords })
    } catch (error) {
-      console.error('Ban words fetch error:', error)
       next(error)
    }
 })
@@ -374,8 +396,30 @@ router.delete('/products/:id', async (req, res, next) => {
 // 상품 유형 관리
 router.get('/product-lists', async (req, res, next) => {
    try {
-      const productLists = await ProductList.findAll()
-      res.status(200).json(productLists)
+      const defaultLists = ['상품권', '기프티콘', '기타']
+
+      const existingLists = await ProductList.findAll({
+         attributes: ['name'],
+      })
+      const existingNames = existingLists.map((list) => list.name)
+
+      const newListsToCreate = defaultLists.filter((name) => !existingNames.includes(name))
+
+      if (newListsToCreate.length > 0) {
+         const userId = req.user?.id || 1
+         const bulkData = newListsToCreate.map((name) => ({
+            name: name,
+            user_id: userId,
+         }))
+         await ProductList.bulkCreate(bulkData)
+      }
+
+      const productLists = await ProductList.findAll({
+         attributes: ['id', 'name'],
+         order: [['id', 'ASC']],
+      })
+
+      res.status(200).json({ data: productLists })
    } catch (error) {
       next(error)
    }
