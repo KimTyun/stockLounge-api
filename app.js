@@ -44,7 +44,7 @@ passportConfig()
 
 // 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
 sequelize
-   .sync({ force: false, alter: false }) // 모델 변경시 테이블 강제 변경
+   .sync({ force: false, alter: false })
    .then(() => {
       console.log('DB 연결 및 모델 동기화 완료')
    })
@@ -82,7 +82,7 @@ app.use('/news', naverNewsRouter)
 app.use('/board', boardRouter)
 app.use('/admin', adminRouter)
 app.use('/users', userRouter)
-app.use('/auth', authRouter)
+app.use('/api/auth', authRouter)
 app.use('/reward', rewardRouter)
 app.use('/report', reportRouter)
 

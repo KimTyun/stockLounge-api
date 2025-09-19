@@ -1,6 +1,7 @@
 const passport = require('passport')
 
 const google = require('./googleStrategy')
+const kakao = require('./kakaoStrategy')
 const User = require('../models/user')
 
 module.exports = () => {
@@ -20,4 +21,5 @@ module.exports = () => {
    })
 
    google()
+   kakao()
 }

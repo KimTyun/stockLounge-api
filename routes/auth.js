@@ -4,7 +4,6 @@ require('dotenv').config()
 const passport = require('passport')
 const { isLoggedIn } = require('../middleware/middleware')
 
-//로그인 상태확인
 router.get('/status', async (req, res, next) => {
    try {
       if (req.isAuthenticated()) {
@@ -28,7 +27,6 @@ router.get('/status', async (req, res, next) => {
    }
 })
 
-//로그아웃
 router.post('/logout', isLoggedIn, (req, res, next) => {
    try {
       req.logout((err) => {
@@ -46,18 +44,16 @@ router.post('/logout', isLoggedIn, (req, res, next) => {
    }
 })
 
-//구글 로그인
-router.get(
-   '/google/login',
-   passport.authenticate('google', {
-      scope: ['profile', 'email'],
-      prompt: 'select_account',
-   })
-)
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' }))
 
-//구글 로그인 콜백
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_APP_URL}?error=google_login_failed` }), (req, res) => {
-   res.redirect(`${process.env.FRONTEND_APP_URL}/`)
+   res.send('<script>window.close();</script>')
+})
+
+router.get('/kakao', passport.authenticate('kakao'))
+
+router.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: `${process.env.FRONTEND_APP_URL}?error=kakao_login_failed` }), (req, res) => {
+   res.send('<script>window.close();</script>')
 })
 
 module.exports = router
