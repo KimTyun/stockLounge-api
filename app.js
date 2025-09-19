@@ -60,6 +60,12 @@ try {
    console.log('uploads 폴더가 없어 uploads 폴더를 생성합니다.')
    fs.mkdirSync('uploads') // 폴더 생성
 }
+try {
+   fs.readdirSync('uploads/products')
+} catch (error) {
+   console.log('uploads에 products 폴더가 없어 uploads/products 폴더를 생성합니다.')
+   fs.mkdirSync('uploads/products')
+}
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // 라우터 가져오기
@@ -68,6 +74,8 @@ const boardRouter = require('./routes/board.js')
 const adminRouter = require('./routes/admin.js')
 const userRouter = require('./routes/users.js')
 const authRouter = require('./routes/auth.js')
+const rewardRouter = require('./routes/reward.js')
+const reportRouter = require('./routes/report.js')
 
 // 라우터 연결
 app.use('/news', naverNewsRouter)
@@ -75,6 +83,8 @@ app.use('/board', boardRouter)
 app.use('/admin', adminRouter)
 app.use('/users', userRouter)
 app.use('/auth', authRouter)
+app.use('/reward', rewardRouter)
+app.use('/report', reportRouter)
 
 app.get('/', (req, res) => {
    res.send('서버실행중')

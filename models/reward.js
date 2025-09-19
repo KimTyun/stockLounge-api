@@ -27,7 +27,7 @@ module.exports = class Reward extends Sequelize.Model {
             coin: {
                type: DataTypes.INTEGER,
                allowNull: false,
-               defaultValue: 0.0,
+               defaultValue: 0,
             },
          },
          {

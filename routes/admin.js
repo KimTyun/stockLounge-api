@@ -66,7 +66,7 @@ router.get('/user/:id', async (req, res) => {
          attributes: ['id', 'email', 'name', 'age', 'roles', 'is_ban', 'provider', 'createdAt'],
       })
       if (!user) {
-         return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+         const error = new Error('사용자를 찾을 수 없습니다.')
       }
       res.status(200).json({ user })
    } catch (error) {
@@ -83,7 +83,7 @@ router.put('/user/:id/ban', async (req, res, next) => {
 
       if (!user) {
          await transaction.rollback()
-         return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+         const error = new Error('사용자를 찾을 수 없습니다.')
       }
 
       await user.update({ is_ban }, { transaction })
@@ -117,7 +117,7 @@ router.delete('/user/:id', async (req, res, next) => {
 
       if (!user) {
          await transaction.rollback()
-         return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' })
+         const error = new Error({ message: '사용자를 찾을 수 없습니다.' })
       }
 
       await user.destroy({ transaction })
@@ -136,7 +136,7 @@ router.delete('/boards/:id', async (req, res) => {
       const board = await Board.findByPk(req.params.id, { transaction })
       if (!board) {
          await transaction.rollback()
-         return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+         const error = new Error('게시글을 찾을 수 없습니다.')
       }
       await board.destroy({ transaction })
       await transaction.commit()
@@ -195,7 +195,7 @@ router.delete('/ban-words/:id', async (req, res, next) => {
       const wordToDelete = await Ban.findOne({ where: { id } })
 
       if (!wordToDelete) {
-         return res.status(404).json({ message: '해당 금지어를 찾을 수 없습니다.' })
+         const error = new Error({ message: '해당 금지어를 찾을 수 없습니다.' })
       }
 
       await wordToDelete.destroy()
@@ -231,7 +231,6 @@ router.get('/settings', async (req, res, next) => {
       }
       res.status(200).json({ settings: settingsList })
    } catch (error) {
-      console.error('Error in /settings:', error.message)
       next(error)
    }
 })
@@ -312,7 +311,7 @@ router.put('/products/:id', async (req, res, next) => {
    try {
       const product = await Product.findByPk(req.params.id)
       if (!product) {
-         return res.status(404).json({ error: '교환품을 찾을 수 없습니다.' })
+         const error = new Error('교환품을 찾을 수 없습니다.')
       }
       await product.update(req.body)
       res.status(200).json({ message: '교환품이 성공적으로 업데이트되었습니다.', product })
@@ -326,7 +325,7 @@ router.delete('/products/:id', async (req, res, next) => {
    try {
       const product = await Product.findByPk(req.params.id)
       if (!product) {
-         return res.status(404).json({ error: '교환품을 찾을 수 없습니다.' })
+         const error = new Error('교환품을 찾을 수 없습니다.')
       }
       await product.destroy()
       res.status(200).json({ message: '교환품을 삭제했습니다.' })

@@ -24,6 +24,10 @@ module.exports = class ProductList extends Sequelize.Model {
                allowNull: false,
                defaultValue: 0,
             },
+            img: {
+               type: DataTypes.TEXT,
+               allowNull: true,
+            },
          },
          {
             sequelize,

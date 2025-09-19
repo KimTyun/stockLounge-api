@@ -4,22 +4,30 @@ module.exports = class RewardRecord extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
+            user_id: {
+               type: DataTypes.INTEGER,
+               allowNull: false,
+               references: {
+                  model: 'users',
+                  key: 'id',
+               },
+            },
             change: {
                type: DataTypes.INTEGER,
                allowNull: false,
             },
             reason: {
-               type: DataTypes.ENUM('ADD', 'COIN_CHANGE', 'PRODUCT_CHANGE'),
+               type: DataTypes.STRING(255),
                allowNull: false,
             },
             reward_item_id: {
                type: DataTypes.INTEGER,
-               allowNull: false,
+               allowNull: true,
             },
          },
          {
             sequelize,
-            timestamps: false,
+            timestamps: true,
             underscored: true,
             modelName: 'RewardRecord',
             tableName: 'reward_records',
