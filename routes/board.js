@@ -4,8 +4,9 @@ const path = require('path')
 const { Board, Comment, Category, BoardLike, CommentLike, User } = require('../models')
 const fs = require('fs')
 require('dotenv').config()
-const { givePoints } = require('../utils/rewardUtils')
+const { givePoints } = require('./reward')
 const router = express.Router()
+const { isLoggedIn } = require('../middleware/middleware')
 
 // 댓글 등록
 router.post('/:id/comment', async (req, res, next) => {
@@ -30,7 +31,7 @@ router.post('/:id/comment', async (req, res, next) => {
 
       // 댓글 작성 포인트 지급 (1점)
       if (user_id) {
-         await givePoints(user_id, 1, '댓글 작성')
+         await givePoints(user_id, 1, `댓글 작성 - ${comment.id}`)
       }
 
       res.status(201).json({
@@ -231,7 +232,7 @@ router.post('/write', upload.single('file'), async (req, res, next) => {
 
       // 게시글 작성 포인트 지급 (5점)
       if (newBoard.user_id) {
-         await givePoints(newBoard.user_id, 5, '게시글 작성')
+         await givePoints(newBoard.user_id, 5, `게시글 작성 - ${newBoard.id}`)
       }
 
       res.status(201).json({
@@ -254,6 +255,16 @@ router.get('/:id', async (req, res, next) => {
 
       const board = await Board.findOne({
          where: { id },
+         include: [
+            {
+               model: Category,
+               attributes: ['category'],
+            },
+            {
+               model: User,
+               attributes: ['name', 'profile_img'],
+            },
+         ],
       })
 
       if (!board) {
@@ -362,7 +373,7 @@ router.put('/:id', upload.single('file'), async (req, res, next) => {
 })
 
 // 게시글 좋아요
-router.post('/:id/like', async (req, res, next) => {
+router.post('/:id/like', isLoggedIn, async (req, res, next) => {
    try {
       const boardId = req.params.id
       const { user_id } = req.body
@@ -374,12 +385,14 @@ router.post('/:id/like', async (req, res, next) => {
          return next(error)
       }
 
+      // 이미 좋아요 눌렀는지 확인
       const existLike = await BoardLike.findOne({
          where: { board_id: boardId, user_id },
       })
 
+      // 이미 좋아요가 있다면
       if (existLike) {
-         // 이미 좋아요가 있다면
+         // 좋아요 취소
          await existLike.destroy()
          const likeCount = await BoardLike.count({
             where: { board_id: boardId },
@@ -403,7 +416,7 @@ router.post('/:id/like', async (req, res, next) => {
 
          // 게시글 작성자에게 포인트 지급 (10점)
          if (board.user_id) {
-            await givePoints(board.user_id, 10, '게시글 추천 받음')
+            await givePoints(board.user_id, 10, `게시글 추천 받음 - ${board.id}`)
          }
 
          return res.json({
@@ -422,7 +435,7 @@ router.post('/:id/like', async (req, res, next) => {
 })
 
 // 댓글 좋아요
-router.post('/comment/:commentId/like', async (req, res, next) => {
+router.post('/comment/:commentId/like', isLoggedIn, async (req, res, next) => {
    try {
       const commentId = req.params.commentId
       const { user_id } = req.body
@@ -435,24 +448,12 @@ router.post('/comment/:commentId/like', async (req, res, next) => {
          return next(error)
       }
 
-      // 로그인 안한 상태 처리
-      if (!user_id) {
-         return res.json({
-            success: true,
-            message: '로그인 후 좋아요를 누를 수 있습니다.',
-            data: {
-               commentId: parseInt(commentId),
-               like_count: comment.like_count || 0,
-               isLiked: false,
-            },
-         })
-      }
-
       // 이미 좋아요 눌렀는지 확인
       const existLike = await CommentLike.findOne({
          where: { comment_id: commentId, user_id },
       })
 
+      // 이미 좋아요가 있다면
       if (existLike) {
          // 좋아요 취소
          await existLike.destroy()
@@ -471,7 +472,7 @@ router.post('/comment/:commentId/like', async (req, res, next) => {
             },
          })
       } else {
-         // 좋아요 등록
+         // 좋아요 기능
          await CommentLike.create({ comment_id: commentId, user_id })
          const likeCount = await CommentLike.count({
             where: { comment_id: commentId },
@@ -480,7 +481,7 @@ router.post('/comment/:commentId/like', async (req, res, next) => {
 
          // 댓글 작성자에게 포인트 지급 (10점)
          if (comment.user_id) {
-            await givePoints(comment.user_id, 10, '댓글 추천 받음')
+            await givePoints(comment.user_id, 10, `댓글 추천 받음 - ${comment.id}`)
          }
 
          return res.json({
