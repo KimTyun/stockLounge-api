@@ -20,8 +20,6 @@ router.get('/', async (req, res, next) => {
       //length : 가져올 기사 개수, query : 검색어, start : 오프셋, lastLink : 마지막 데이터(originallink로 구분)
       const { length, query, start, lastLink } = req.query
 
-      console.log('스타트', start)
-      console.log('랭스', length)
       if (!query) {
          const error = new Error('필수값 누락 : query')
          error.status = 400
