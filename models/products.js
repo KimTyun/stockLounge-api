@@ -31,7 +31,7 @@ module.exports = class Product extends Sequelize.Model {
                allowNull: true,
             },
             product_list_id: {
-               type: DataTypes.UUID,
+               type: DataTypes.INTEGER,
                allowNull: false,
             },
          },

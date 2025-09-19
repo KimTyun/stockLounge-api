@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { User, Board, Ban, Product, Report, Sanction, Comment, Category, SiteSettings, Reward } = require('../models')
+const { User, Board, Ban, Product, Report, Sanction, Comment, Category, SiteSettings, Reward, BanUser } = require('../models')
 const { sequelize } = require('../models/index.js')
 const db = require('../models')
 const { isAdmin } = require('../middleware/middleware.js')
@@ -260,7 +260,7 @@ router.put('/settings', async (req, res, next) => {
    }
 })
 
-// 교환품 조회
+// 상품 조회
 router.get('/products', async (req, res, next) => {
    try {
       const products = await Product.findAll({
@@ -280,25 +280,28 @@ router.get('/products', async (req, res, next) => {
    }
 })
 
-// 교환품 생성
+// 상품 생성
 router.post('/products', upload.single('product_img'), async (req, res, next) => {
    try {
-      const { name, price, stock } = req.body
+      const { name, price, stock, product_list_id } = req.body
       const product_img = req.file ? `/uploads/products/${req.file.filename}` : null
 
-      const userId = 1
       const priceNum = Number(price)
       const stockNum = Number(stock)
-      const newProduct = await Product.create({
-         name,
-         price: priceNum,
-         stock,
-         product_img,
-         user_id: userId,
-      })
+
       if (!name || !Number.isFinite(priceNum) || priceNum < 0 || !Number.isFinite(stockNum) || stockNum < 0) {
          return res.status(400).json({ message: '모든 필수 필드를 입력해야 합니다.' })
       }
+
+      const userId = 1
+      const newProduct = await Product.create({
+         name,
+         price: priceNum,
+         stock: stockNum,
+         product_img,
+         user_id: userId,
+         product_list_id: product_list_id,
+      })
 
       res.status(201).json({ message: '교환품이 추가되었습니다.', product: newProduct })
    } catch (error) {
@@ -306,7 +309,7 @@ router.post('/products', upload.single('product_img'), async (req, res, next) =>
    }
 })
 
-// 교환품 수정
+// 상품 수정
 router.put('/products/:id', async (req, res, next) => {
    try {
       const product = await Product.findByPk(req.params.id)
@@ -320,7 +323,7 @@ router.put('/products/:id', async (req, res, next) => {
    }
 })
 
-// 교환품 삭제
+// 상품 삭제
 router.delete('/products/:id', async (req, res, next) => {
    try {
       const product = await Product.findByPk(req.params.id)
@@ -329,6 +332,54 @@ router.delete('/products/:id', async (req, res, next) => {
       }
       await product.destroy()
       res.status(200).json({ message: '교환품을 삭제했습니다.' })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 상품 유형 관리
+router.get('/product-lists', async (req, res, next) => {
+   try {
+      const productLists = await ProductList.findAll()
+      res.status(200).json(productLists)
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 상품 유형 생성
+router.post('/product-lists', async (req, res, next) => {
+   try {
+      const { name, description } = req.body
+      const newProductList = await ProductList.create({ name, description, user_id: 1 })
+      res.status(201).json(newProductList)
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 상품 유형 수정
+router.put('/product-lists/:id', async (req, res, next) => {
+   try {
+      const productList = await ProductList.findByPk(req.params.id)
+      if (!productList) {
+         return res.status(404).json({ message: '상품 유형을 찾을 수 없습니다.' })
+      }
+      await productList.update(req.body)
+      res.status(200).json(productList)
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 상품 유형 삭제
+router.delete('/product-lists/:id', async (req, res, next) => {
+   try {
+      const result = await ProductList.destroy({ where: { id: req.params.id } })
+      if (result === 0) {
+         return res.status(404).json({ message: '상품 유형을 찾을 수 없습니다.' })
+      }
+      res.status(200).json({ message: '상품 유형이 삭제되었습니다.' })
    } catch (error) {
       next(error)
    }
@@ -356,12 +407,11 @@ router.get('/statistics', async (req, res, next) => {
       // 현재 기간과 이전 기간 통계를 위한 끝 날짜
       const previousEndDate = startDate
 
-      // 현재 기간 주요 통계
       const [newUsers, newPosts, newComments, newReports] = await Promise.all([
          User.count({ where: { createdAt: { [Op.gte]: startDate } } }),
          Board.count({ where: { createdAt: { [Op.gte]: startDate } } }),
          Comment.count({ where: { createdAt: { [Op.gte]: startDate } } }),
-         BanUser.count({ where: { createdAt: { [Op.gte]: startDate } } }),
+         Report.count({ where: { createdAt: { [Op.gte]: startDate } } }),
       ])
 
       // 이전 기간 주요 통계 (변화율 계산용)
@@ -390,7 +440,7 @@ router.get('/statistics', async (req, res, next) => {
                },
             },
          }),
-         BanUser.count({
+         Report.count({
             where: {
                createdAt: {
                   [Op.gte]: previousStartDate,
@@ -406,95 +456,119 @@ router.get('/statistics', async (req, res, next) => {
          return ((current - previous) / previous) * 100
       }
 
-      // 인기 게시글 5개 (댓글 수 포함)
-      const popularPosts = await Board.findAll({
-         attributes: ['id', 'title', 'view_count', 'like_count', [sequelize.fn('COUNT', sequelize.col('Comments.id')), 'comment_count']],
-         include: [
-            {
-               model: Comment,
-               attributes: [],
-               required: false,
-            },
-         ],
-         where: {
-            createdAt: { [Op.gte]: startDate },
-         },
-         group: ['Board.id', 'Board.title', 'Board.view_count', 'Board.like_count'],
-         order: [
-            ['view_count', 'DESC'],
-            ['like_count', 'DESC'],
-         ],
-         limit: 5,
-         subQuery: false,
-      })
-
-      // 활성 사용자 5명 (포인트 포함)
-      const activeUsers = await User.findAll({
-         attributes: ['id', 'name', [sequelize.fn('COUNT', sequelize.col('Boards.id')), 'postCount'], [sequelize.literal('(SELECT COUNT(*) FROM comments WHERE comments.user_id = User.id AND comments.createdAt >= ?)'), 'commentCount']],
-         include: [
-            {
-               model: Board,
-               attributes: [],
-               where: {
-                  createdAt: { [Op.gte]: startDate },
+      // 인기 게시글 5개 (댓글 수 포함) - 에러 처리 개선
+      let popularPosts = []
+      try {
+         popularPosts = await Board.findAll({
+            attributes: ['id', 'title', 'view_count', 'like_count', [sequelize.fn('COUNT', sequelize.col('Comments.id')), 'comment_count']],
+            include: [
+               {
+                  model: Comment,
+                  attributes: [],
+                  required: false,
                },
-               required: false,
+            ],
+            where: {
+               createdAt: { [Op.gte]: startDate },
             },
-            {
-               model: Reward,
-               attributes: ['point', 'accumulated_point'],
-               required: false,
-            },
-         ],
-         group: ['User.id', 'User.name', 'Reward.id'],
-         order: [[sequelize.literal('postCount + commentCount'), 'DESC']],
-         limit: 5,
-         replacements: [startDate],
-         subQuery: false,
-      })
-
-      // 카테고리별 게시글 분포
-      const categoryStats = await Board.findAll({
-         attributes: [
-            [sequelize.col('Category.category'), 'category_name'],
-            [sequelize.fn('COUNT', sequelize.col('Board.id')), 'post_count'],
-         ],
-         include: [
-            {
-               model: Category,
-               attributes: [],
-            },
-         ],
-         where: {
-            createdAt: { [Op.gte]: startDate },
-         },
-         group: ['Category.category'],
-         raw: true,
-         subQuery: false,
-      })
-
-      // 시간대별 활동 분포
-      const hourlyActivity = await Board.findAll({
-         attributes: [
-            [sequelize.fn('HOUR', sequelize.col('Board.createdAt')), 'hour'],
-            [sequelize.fn('COUNT', sequelize.col('Board.id')), 'post_count'],
-         ],
-         where: {
-            createdAt: { [Op.gte]: startDate },
-         },
-         group: [sequelize.fn('HOUR', sequelize.col('Board.createdAt'))],
-         raw: true,
-         subQuery: false,
-      })
-
-      // 임시 방문자/페이지뷰 데이터 (실제로는 Analytics 테이블이나 외부 서비스에서 가져와야 함)
-      const mockVisitorData = {
-         current: Math.floor(Math.random() * 10000) + 5000,
-         previous: Math.floor(Math.random() * 9000) + 4000,
+            group: ['Board.id', 'Board.title', 'Board.view_count', 'Board.like_count'],
+            order: [
+               ['view_count', 'DESC'],
+               ['like_count', 'DESC'],
+            ],
+            limit: 5,
+            subQuery: false,
+         })
+      } catch (error) {
+         console.error('Popular posts query error:', error)
+         // 에러 발생 시 빈 배열로 설정
+         popularPosts = []
       }
-      const mockPageViewData = {
-         current: Math.floor(Math.random() * 50000) + 20000,
-         previous: Math.floor(Math.random() * 40000) + 15000,
+
+      // 활성 사용자 5명 (포인트 포함) - 에러 처리 개선
+      let activeUsers = []
+      try {
+         activeUsers = await User.findAll({
+            attributes: [
+               'id',
+               'name',
+               [sequelize.fn('COUNT', sequelize.col('Boards.id')), 'postCount'],
+               // comments.createdAt → comments.created_at로 수정
+               [sequelize.literal('(SELECT COUNT(*) FROM comments WHERE comments.user_id = User.id AND comments.created_at >= ?)'), 'commentCount'],
+            ],
+            include: [
+               {
+                  model: Board,
+                  attributes: [],
+                  where: {
+                     createdAt: { [Op.gte]: startDate },
+                  },
+                  required: false,
+               },
+               {
+                  model: Reward,
+                  attributes: ['point', 'accumulated_point'],
+                  required: false,
+               },
+            ],
+            group: ['User.id', 'User.name', 'Reward.id'],
+            order: [[sequelize.literal('postCount + commentCount'), 'DESC']],
+            limit: 5,
+            replacements: [startDate],
+            subQuery: false,
+         })
+      } catch (error) {
+         console.error('Active users query error:', error)
+         activeUsers = []
+      }
+
+      // 카테고리별 게시글 분포 - 에러 처리 개선
+      let categoryStats = []
+      try {
+         categoryStats = await Board.findAll({
+            attributes: [
+               [sequelize.col('Category.category'), 'category_name'],
+               [sequelize.fn('COUNT', sequelize.col('Board.id')), 'post_count'],
+            ],
+            include: [
+               {
+                  model: Category,
+                  attributes: [],
+               },
+            ],
+            where: {
+               createdAt: { [Op.gte]: startDate },
+            },
+            group: ['Category.category'],
+            raw: true,
+            subQuery: false,
+         })
+      } catch (error) {
+         console.error('Category stats query error:', error)
+         // 에러 발생 시 빈 배열로 설정
+         categoryStats = []
+      }
+
+      // 시간대별 활동 분포 - 에러 처리 개선
+      let hourlyActivity = []
+      try {
+         hourlyActivity = await Board.findAll({
+            attributes: [
+               // Board.createdAt → Board.created_at로 수정
+               [sequelize.fn('HOUR', sequelize.col('Board.created_at')), 'hour'],
+               [sequelize.fn('COUNT', sequelize.col('Board.id')), 'post_count'],
+            ],
+            where: {
+               createdAt: { [Op.gte]: startDate },
+            },
+            // GROUP BY도 수정
+            group: [sequelize.fn('HOUR', sequelize.col('Board.created_at'))],
+            raw: true,
+            subQuery: false,
+         })
+      } catch (error) {
+         console.error('Hourly activity query error:', error)
+         hourlyActivity = []
       }
 
       // 응답 데이터 구성
@@ -539,13 +613,13 @@ router.get('/statistics', async (req, res, next) => {
             title: post.title,
             view_count: post.view_count || 0,
             like_count: post.like_count || 0,
-            comment_count: parseInt(post.getDataValue('comment_count')) || 0,
+            comment_count: post.getDataValue ? parseInt(post.getDataValue('comment_count')) || 0 : 0,
          })),
          activeUsers: activeUsers.map((user) => ({
             id: user.id,
             name: user.name,
-            post_count: parseInt(user.getDataValue('postCount')) || 0,
-            comment_count: parseInt(user.getDataValue('commentCount')) || 0,
+            post_count: user.getDataValue ? parseInt(user.getDataValue('postCount')) || 0 : 0,
+            comment_count: user.getDataValue ? parseInt(user.getDataValue('commentCount')) || 0 : 0,
             points: user.Reward ? user.Reward.point || 0 : 0,
             accumulated_points: user.Reward ? user.Reward.accumulated_point || 0 : 0,
          })),
@@ -562,7 +636,23 @@ router.get('/statistics', async (req, res, next) => {
       res.status(200).json(responseData)
    } catch (error) {
       console.error('Statistics API Error:', error)
-      next(error)
+      console.error('Error stack:', error.stack)
+
+      // 에러 발생 시 기본 응답 반환
+      res.status(200).json({
+         mainStats: {
+            visitors: { current: 0, previous: 0, change: 0 },
+            pageViews: { current: 0, previous: 0, change: 0 },
+            newUsers: { current: 0, previous: 0, change: 0 },
+            posts: { current: 0, previous: 0, change: 0 },
+            comments: { current: 0, previous: 0, change: 0 },
+            reports: { current: 0, previous: 0, change: 0 },
+         },
+         popularPosts: [],
+         activeUsers: [],
+         categoryStats: [],
+         hourlyActivity: [],
+      })
    }
 })
 

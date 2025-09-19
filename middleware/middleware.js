@@ -6,7 +6,6 @@ exports.isAdmin = (req, res, next) => {
          roles: ['admin'],
       }
    }
-
    next()
 }
 

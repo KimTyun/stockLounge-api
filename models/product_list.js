@@ -5,8 +5,8 @@ module.exports = class ProductList extends Sequelize.Model {
       return super.init(
          {
             id: {
-               type: DataTypes.UUID,
-               defaultValue: DataTypes.UUIDV4,
+               type: DataTypes.INTEGER,
+               autoIncrement: true,
                primaryKey: true,
                allowNull: false,
             },
