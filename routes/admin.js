@@ -264,8 +264,21 @@ router.put('/settings', async (req, res, next) => {
 
       for (const key in updates) {
          if (Object.prototype.hasOwnProperty.call(updates, key)) {
+            // 숫자로 변환되어야 하는 키 목록을 정의합니다.
+            const numberKeys = ['pricePerPost', 'pricePerComment', 'pricePerLike', 'coinExchangeRate', 'maxPostsPerDay', 'maxCommentsPerDay']
+
+            let valueToUpdate = updates[key]
+            // 해당 키가 숫자 목록에 포함되면, 값을 숫자로 변환합니다.
+            if (numberKeys.includes(key)) {
+               valueToUpdate = parseInt(updates[key], 10)
+               // 유효한 숫자가 아닐 경우 기본값 0으로 설정
+               if (isNaN(valueToUpdate)) {
+                  valueToUpdate = 0
+               }
+            }
+
             await SiteSettings.update(
-               { value: String(updates[key]) },
+               { value: valueToUpdate },
                {
                   where: { key: key },
                   transaction,
