@@ -12,7 +12,7 @@ const passport = require('passport')
 const passportConfig = require('./passport')
 
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
-const db = require('./config/db') // 사용하지 않으면 주석 처리
+// const db = require('./config/db') // 사용하지 않으면 주석 처리
 
 const app = express()
 const PORT = process.env.PORT || 8000
@@ -63,7 +63,7 @@ try {
 try {
    fs.readdirSync('uploads/products')
 } catch (error) {
-   console.log('uploads/products 폴더가 없어 uploads/products 폴더를 생성합니다.')
+   console.log('uploads에 products 폴더가 없어 uploads/products 폴더를 생성합니다.')
    fs.mkdirSync('uploads/products')
 }
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))

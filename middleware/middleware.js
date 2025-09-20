@@ -1,11 +1,8 @@
 exports.isAdmin = (req, res, next) => {
-   if (!req.user || req?.user?.roles === 'admin') {
-      next()
-   } else {
-      res.status(403).json({
-         message: '접근 권한이 없습니다. 관리자만 접근할 수 있습니다.',
-      })
+   if (!req.user || req.user.roles !== 'ADMIN') {
+      return res.status(403).json({ message: '접근 권한이 없습니다.' })
    }
+   next()
 }
 
 exports.isLoggedIn = (req, res, next) => {

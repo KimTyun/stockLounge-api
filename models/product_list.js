@@ -1,9 +1,15 @@
 const { Sequelize, DataTypes } = require('sequelize')
-// 이 테이블은 관리자가 관리하는 상품 목록에 대한 테이블로, rewardRecord가 값을 참조해갑니다.
-module.exports = class RewardItem extends Sequelize.Model {
+// 이 테이블은 관리자가 관리하는 상품 목록에 대한 테이블로, product가 값을 참조해갑니다.
+module.exports = class ProductList extends Sequelize.Model {
    static init(sequelize) {
       return super.init(
          {
+            id: {
+               type: DataTypes.INTEGER,
+               autoIncrement: true,
+               primaryKey: true,
+               allowNull: false,
+            },
             name: {
                type: DataTypes.STRING(100),
                allowNull: false,
@@ -27,8 +33,8 @@ module.exports = class RewardItem extends Sequelize.Model {
             sequelize,
             timestamps: true,
             underscored: true,
-            modelName: 'RewardItem',
-            tableName: 'reward_items',
+            modelName: 'ProductList',
+            tableName: 'product_list',
             charset: 'utf8mb4',
             collate: 'utf8mb4_general_ci',
          }
@@ -36,8 +42,8 @@ module.exports = class RewardItem extends Sequelize.Model {
    }
 
    static associate(db) {
-      db.RewardItem.hasMany(db.RewardRecord, {
-         foreignKey: 'reward_item_id',
+      db.ProductList.hasMany(db.Product, {
+         foreignKey: 'product_list_id',
          sourceKey: 'id',
       })
    }

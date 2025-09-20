@@ -1,17 +1,18 @@
 const express = require('express')
 const multer = require('multer')
 const path = require('path')
-const { Board, Comment, Category, BoardLike, CommentLike, User } = require('../models')
+const { Board, Comment, Category, BoardLike, CommentLike, User, Ban } = require('../models')
 const fs = require('fs')
 require('dotenv').config()
-const { givePoints } = require('../utils/rewardUtils')
+const { givePoints } = require('./reward')
 const router = express.Router()
+const { isLoggedIn } = require('../middleware/middleware')
 
 // 댓글 등록
 router.post('/:id/comment', async (req, res, next) => {
    try {
       const boardId = req.params.id
-      const { content, user_id, parent_id } = req.body
+      const { content, user_id } = req.body
 
       // 게시글이 존재하는지 확인
       const board = await Board.findByPk(boardId)
@@ -19,6 +20,18 @@ router.post('/:id/comment', async (req, res, next) => {
          const error = new Error('게시글을 찾을 수 없습니다.')
          error.status = 404
          return next(error)
+      }
+      const ban = await Ban.findAll()
+      const banWord = ban.some((word) => content.includes(word.pattern))
+
+      // ban 단어가 있을시에 false 반환
+      if (banWord) {
+         return res.status(200).json({
+            success: false,
+            showModal: true,
+            message: '부적절한 단어가 포함되어 있습니다.',
+            modalType: 'warning',
+         })
       }
 
       // 댓글 생성
@@ -30,7 +43,7 @@ router.post('/:id/comment', async (req, res, next) => {
 
       // 댓글 작성 포인트 지급 (1점)
       if (user_id) {
-         await givePoints(user_id, 1, '댓글 작성')
+         await givePoints(user_id, 1, `댓글 작성 - ${comment.id}`)
       }
 
       res.status(201).json({
@@ -219,6 +232,20 @@ router.post('/write', upload.single('file'), async (req, res, next) => {
          defaults: { category },
       })
 
+      const ban = await Ban.findAll()
+      const banTitle = ban.some((word) => title.includes(word.pattern))
+      const banContent = ban.some((word) => content.includes(word.pattern))
+
+      // ban 단어가 있을시에 false 반환
+      if (banTitle || banContent) {
+         return res.status(200).json({
+            success: false,
+            showModal: true,
+            message: '부적절한 단어가 포함되어 있습니다.',
+            modalType: 'warning',
+         })
+      }
+
       const newBoard = await Board.create({
          title,
          content,
@@ -231,7 +258,7 @@ router.post('/write', upload.single('file'), async (req, res, next) => {
 
       // 게시글 작성 포인트 지급 (5점)
       if (newBoard.user_id) {
-         await givePoints(newBoard.user_id, 5, '게시글 작성')
+         await givePoints(newBoard.user_id, 5, `게시글 작성 - ${newBoard.id}`)
       }
 
       res.status(201).json({
@@ -254,6 +281,16 @@ router.get('/:id', async (req, res, next) => {
 
       const board = await Board.findOne({
          where: { id },
+         include: [
+            {
+               model: Category,
+               attributes: ['category'],
+            },
+            {
+               model: User,
+               attributes: ['name', 'profile_img'],
+            },
+         ],
       })
 
       if (!board) {
@@ -318,37 +355,37 @@ router.put('/:id', upload.single('file'), async (req, res, next) => {
       const id = req.params.id
       const { title, content, category } = req.body
 
-      // 게시글이 존재하는지 확인
       const board = await Board.findByPk(id)
       if (!board) {
-         const error = new Error('게시글을 찾을 수 없습니다.')
-         error.status = 404
-         return next(error)
+         return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' })
       }
 
-      const updateData = {
-         title,
-         content,
-         category,
+      // 금칙어 체크
+      const ban = await Ban.findAll()
+      const banTitle = ban.some((word) => title.includes(word.pattern))
+      const banContent = ban.some((word) => content.includes(word.pattern))
+
+      if (banTitle || banContent) {
+         return res.status(200).json({
+            success: false,
+            showModal: true,
+            message: '부적절한 단어가 포함되어 있습니다.',
+            modalType: 'warning',
+         })
       }
 
-      // 파일이 있으면 기존 파일 삭제 후 새 파일 저장
+      const updateData = { title, content, category }
+
       if (req.file) {
          if (board.board_img) {
             const oldPath = path.join(__dirname, '..', 'uploads', board.board_img)
             fs.unlink(oldPath, (err) => {
-               if (err) {
-                  console.error('기존 이미지 삭제 실패:', err)
-               } else {
-                  console.log('기존 이미지 삭제 성공:', board.board_img)
-               }
+               if (err) console.error('기존 이미지 삭제 실패:', err)
             })
          }
-
          updateData.board_img = req.file.filename
       }
 
-      // DB 업데이트
       await board.update(updateData)
 
       res.json({
@@ -362,7 +399,7 @@ router.put('/:id', upload.single('file'), async (req, res, next) => {
 })
 
 // 게시글 좋아요
-router.post('/:id/like', async (req, res, next) => {
+router.post('/:id/like', isLoggedIn, async (req, res, next) => {
    try {
       const boardId = req.params.id
       const { user_id } = req.body
@@ -374,12 +411,14 @@ router.post('/:id/like', async (req, res, next) => {
          return next(error)
       }
 
+      // 이미 좋아요 눌렀는지 확인
       const existLike = await BoardLike.findOne({
          where: { board_id: boardId, user_id },
       })
 
+      // 이미 좋아요가 있다면
       if (existLike) {
-         // 이미 좋아요가 있다면
+         // 좋아요 취소
          await existLike.destroy()
          const likeCount = await BoardLike.count({
             where: { board_id: boardId },
@@ -403,7 +442,7 @@ router.post('/:id/like', async (req, res, next) => {
 
          // 게시글 작성자에게 포인트 지급 (10점)
          if (board.user_id) {
-            await givePoints(board.user_id, 10, '게시글 추천 받음')
+            await givePoints(board.user_id, 10, `게시글 추천 받음 - ${board.id}`)
          }
 
          return res.json({
@@ -422,7 +461,7 @@ router.post('/:id/like', async (req, res, next) => {
 })
 
 // 댓글 좋아요
-router.post('/comment/:commentId/like', async (req, res, next) => {
+router.post('/comment/:commentId/like', isLoggedIn, async (req, res, next) => {
    try {
       const commentId = req.params.commentId
       const { user_id } = req.body
@@ -435,24 +474,12 @@ router.post('/comment/:commentId/like', async (req, res, next) => {
          return next(error)
       }
 
-      // 로그인 안한 상태 처리
-      if (!user_id) {
-         return res.json({
-            success: true,
-            message: '로그인 후 좋아요를 누를 수 있습니다.',
-            data: {
-               commentId: parseInt(commentId),
-               like_count: comment.like_count || 0,
-               isLiked: false,
-            },
-         })
-      }
-
       // 이미 좋아요 눌렀는지 확인
       const existLike = await CommentLike.findOne({
          where: { comment_id: commentId, user_id },
       })
 
+      // 이미 좋아요가 있다면
       if (existLike) {
          // 좋아요 취소
          await existLike.destroy()
@@ -471,7 +498,7 @@ router.post('/comment/:commentId/like', async (req, res, next) => {
             },
          })
       } else {
-         // 좋아요 등록
+         // 좋아요 기능
          await CommentLike.create({ comment_id: commentId, user_id })
          const likeCount = await CommentLike.count({
             where: { comment_id: commentId },
@@ -480,7 +507,7 @@ router.post('/comment/:commentId/like', async (req, res, next) => {
 
          // 댓글 작성자에게 포인트 지급 (10점)
          if (comment.user_id) {
-            await givePoints(comment.user_id, 10, '댓글 추천 받음')
+            await givePoints(comment.user_id, 10, `댓글 추천 받음 - ${comment.id}`)
          }
 
          return res.json({

@@ -19,9 +19,9 @@ const CommentLike = require('./comment_like')
 const BanUser = require('./ban_user')
 const Product = require('./products')
 const Ban = require('./ban')
-const RewardItem = require('./rewardItem')
+const SiteSettings = require('./site_Settings')
 const Report = require('./report')
-const SiteSettings = require('./site_settings')
+const ProductList = require('./product_list')
 
 db.sequelize = sequelize
 db.User = User
@@ -35,9 +35,9 @@ db.CommentLike = CommentLike
 db.BanUser = BanUser
 db.Product = Product
 db.Ban = Ban
-db.RewardItem = RewardItem
-db.Report = Report
 db.SiteSettings = SiteSettings
+db.Report = Report
+db.ProductList = ProductList
 
 User.init(sequelize)
 Board.init(sequelize)
@@ -50,9 +50,9 @@ CommentLike.init(sequelize)
 BanUser.init(sequelize)
 Product.init(sequelize)
 Ban.init(sequelize)
-RewardItem.init(sequelize)
-Report.init(sequelize)
 SiteSettings.init(sequelize)
+Report.init(sequelize)
+ProductList.init(sequelize)
 
 User.associate && User.associate(db)
 Board.associate && Board.associate(db)
@@ -65,8 +65,8 @@ CommentLike.associate && CommentLike.associate(db)
 BanUser.associate && BanUser.associate(db)
 Product.associate && Product.associate(db)
 Ban.associate && Ban.associate(db)
-RewardItem.associate && RewardItem.associate(db)
-Report.associate && Report.associate(db)
 SiteSettings.associate && SiteSettings.associate(db)
+Report.associate && Report.associate(db)
+ProductList.associate && ProductList.associate(db)
 
 module.exports = db
