@@ -46,18 +46,34 @@ router.post('/logout', isLoggedIn, (req, res, next) => {
    }
 })
 
-//구글 로그인
-router.get(
-   '/google/login',
-   passport.authenticate('google', {
-      scope: ['profile', 'email'],
-      prompt: 'select_account',
-   })
-)
+// --- 구글 라우트 ---
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
 
-//구글 로그인 콜백
-router.get('/google/callback', passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_APP_URL}?error=google_login_failed` }), (req, res) => {
-   res.redirect(`${process.env.FRONTEND_APP_URL}/`)
+router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
+   res.send(`
+      <script>
+         window.opener.postMessage(
+            { success: true, provider: 'google', redirectUrl: '/' }, 
+            'http://localhost:5173'
+         );
+         window.close();
+      </script>
+   `)
+})
+
+router.get('/kakao', passport.authenticate('kakao'))
+
+// --- 카카오 콜백 ---
+router.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: '/login' }), (req, res) => {
+   res.send(`
+      <script>
+         window.opener.postMessage(
+            { success: true, provider: 'kakao', redirectUrl: '/' }, 
+            'http://localhost:5173'
+         );
+         window.close();
+      </script>
+   `)
 })
 
 module.exports = router

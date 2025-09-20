@@ -19,7 +19,7 @@ const CommentLike = require('./comment_like')
 const BanUser = require('./ban_user')
 const Product = require('./products')
 const Ban = require('./ban')
-const SiteSettings = require('./site_Settings')
+const SiteSettings = require('./site_settings')
 const Report = require('./report')
 const ProductList = require('./product_list')
 
