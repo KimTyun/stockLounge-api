@@ -50,13 +50,30 @@ router.post('/logout', isLoggedIn, (req, res, next) => {
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
 
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
-   res.send('<script>window.opener.location.reload(); window.close();</script>')
+   res.send(`
+      <script>
+         window.opener.postMessage(
+            { success: true, provider: 'google', redirectUrl: '/' }, 
+            'http://localhost:5173'
+         );
+         window.close();
+      </script>
+   `)
 })
 
 router.get('/kakao', passport.authenticate('kakao'))
 
+// --- 카카오 콜백 ---
 router.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: '/login' }), (req, res) => {
-   res.send('<script>window.opener.location.reload(); window.close();</script>')
+   res.send(`
+      <script>
+         window.opener.postMessage(
+            { success: true, provider: 'kakao', redirectUrl: '/' }, 
+            'http://localhost:5173'
+         );
+         window.close();
+      </script>
+   `)
 })
 
 module.exports = router
