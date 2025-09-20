@@ -82,7 +82,7 @@ app.use('/news', naverNewsRouter)
 app.use('/board', boardRouter)
 app.use('/admin', adminRouter)
 app.use('/users', userRouter)
-app.use('/api/auth', authRouter)
+app.use('/auth', authRouter)
 app.use('/reward', rewardRouter)
 app.use('/report', reportRouter)
 
