@@ -1,23 +1,22 @@
 const passport = require('passport')
-
 const google = require('./googleStrategy')
+const kakao = require('./kakaoStrategy')
 const User = require('../models/user')
 
 module.exports = () => {
-   //직렬화(serializeUser): 로그인 성공 후 사용자 정보를 세션에 저장
    passport.serializeUser((user, done) => {
-      // user: 사용자 정보가 저장되어 있는 객체
-      done(null, user.id) //사용자 id(pk값)를 세션에 저장(세션 용량 절약을 위해 id만 저장)
+      done(null, user.id)
    })
 
    passport.deserializeUser(async (id, done) => {
       try {
          const user = await User.findByPk(id)
-         done(null, user) // req.user로 들어감
+         done(null, user) // 조회된 정보는 req.user에서 사용할 수 있게 됨
       } catch (error) {
          done(error)
       }
    })
 
    google()
+   kakao()
 }
