@@ -46,7 +46,7 @@ router.post('/logout', isLoggedIn, (req, res, next) => {
    }
 })
 
-//구글 로그인
+//구글 로그인(GET /api/auth/google)
 router.get(
    '/google',
    passport.authenticate('google', {
@@ -58,6 +58,14 @@ router.get(
 //구글 로그인 콜백
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_APP_URL}?error=google_login_failed` }), (req, res) => {
    res.redirect(`${process.env.FRONTEND_APP_URL}/`)
+})
+
+//카카오 로그인(GET /api/auth/kakao)
+router.get('/kakao', passport.authenticate('kakao'))
+
+//카카오 로그인 콜백 (GET /api/auth/kakao/callback)
+router.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: `${process.env.FRONTEND_APP_URL}/login` }), (req, res) => {
+   res.send('<script>window.close();</script>')
 })
 
 module.exports = router
