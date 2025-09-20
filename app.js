@@ -10,6 +10,8 @@ const morgan = require('morgan')
 dotenv.config()
 const passport = require('passport')
 const passportConfig = require('./passport')
+const swaggerDocument = require('./swagger')
+const swaggerUi = require('swagger-ui-express')
 
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
 // const db = require('./config/db') // 사용하지 않으면 주석 처리
@@ -86,6 +88,7 @@ app.use('/auth', authRouter)
 app.use('/reward', rewardRouter)
 app.use('/report', reportRouter)
 app.use('/upbit', upbitRouter)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 app.get('/', (req, res) => {
    res.send('서버실행중')
