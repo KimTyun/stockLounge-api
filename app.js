@@ -42,9 +42,8 @@ app.use(
 )
 passportConfig()
 
-// 테이블 재생성 코드(테이블 변경사항이 없을 경우 주석처리)
 sequelize
-   .sync({ force: false, alter: false }) // 모델 변경시 테이블 강제 변경
+   .sync({ force: false, alter: false })
    .then(() => {
       console.log('DB 연결 및 모델 동기화 완료')
    })
@@ -76,6 +75,7 @@ const userRouter = require('./routes/users.js')
 const authRouter = require('./routes/auth.js')
 const rewardRouter = require('./routes/reward.js')
 const reportRouter = require('./routes/report.js')
+const upbitRouter = require('./routes/upbit.js')
 
 // 라우터 연결
 app.use('/news', naverNewsRouter)
@@ -85,6 +85,7 @@ app.use('/users', userRouter)
 app.use('/auth', authRouter)
 app.use('/reward', rewardRouter)
 app.use('/report', reportRouter)
+app.use('/upbit', upbitRouter)
 
 app.get('/', (req, res) => {
    res.send('서버실행중')
