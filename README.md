@@ -1,6 +1,8 @@
 # StockRounge - 코인 커뮤니티 플랫폼
 
 코인 종목토론 게시판 커뮤니티형 핀테크 반응형 웹사이트
+도메인 : https://stocklounge.store
+
 
 ## 팀원
 
@@ -107,14 +109,12 @@
 
 ### 메인 페이지
 
--  **GNB (고정 상단바)**: 로그인/회원가입, 주요 메뉴 [메인/게시판/차트/뉴스/내정보]
--  **코인 차트 영역**: 주요 3개 코인 (비트코인/이더리움/리플) 캔들 차트
--  **인기 게시글 영역**: 오늘의 인기글 3개 카드 형태
--  **뉴스 영역**: 코인뉴스/경제뉴스 2개 블록
+-  **GNB (고정 상단바)**: 로그인/내정보, 주요 메뉴 [메인/게시판/차트/뉴스/내정보]
+-  **Hero Section** : keyframes로 구현된 간단한 애니메이션, CTA 버튼
 
 ### 인증 시스템
 
--  **소셜 로그인**: 구글, OAuth 인증
+-  **소셜 로그인**: 구글, 카카오 인증
 -  **포인트 시스템**: 게시글/댓글 작성, 추천 시 포인트 지급
 -  **포인트 교환**: 1000포인트 = 1코인, 코인을 원치 않는 사용자는 실제 상품으로 교환 가능
 
@@ -128,6 +128,7 @@
 
 -  **실시간 차트**: Upbit API 연동
 -  **TOP 코인**: 상위 20개 코인 리스트
+-  **유저 맞춤 게시글**: implicit를 활용한 유저 맞춤 게시글 리스트
 
 ### 관리자
 
@@ -138,43 +139,26 @@
 
 ## 🛠 기술 스택
 
--  **Frontend**: React 19, Vite
--  **UI Framework**: Bootstrap 4, React-Bootstrap
--  **상태관리**: Redux Toolkit
--  **라우팅**: React Router DOM
--  **차트**: Chart.js, React-ChartJS-2
--  **에디터**: React-Quill
--  **API**: Axios
--  **스타일링**: CSS Modules
-
-## 🎨 디자인 시스템
-
--  **메인 컬러**: #5E94CA (Primary), #F7FAFC (Secondary)
--  **소셜 로그인 컬러**:
-   -  구글: #4285F4
-   -  카카오: #FAD900
--  **반응형 디자인**: Bootstrap 4 기반
+-  **Backend**: Node.js, Express
+-  **ORM/DB**: Sequelize, MySQL2
+-  **인증/보안**: Passport (Google, Kakao), JWT, bcrypt, helmet, cors, express-session, cookie-parser
+-  **API 문서화**: Swagger-jsdoc, Swagger-UI-Express
+-  **파일 업로드**: Multer
+-  **유틸리티**: dotenv, dayjs, morgan
+-  **개발환경**: Nodemon
 
 ## 📂 폴더 구조
 
 ```
-src/
-├── components/           # 재사용 가능한 UI 컴포넌트
-│   ├── common/          # 공통 컴포넌트 (Header, Footer, Layout 등)
-│   ├── auth/            # 인증 관련 컴포넌트
-│   ├── chart/           # 차트 관련 컴포넌트
-│   ├── board/           # 게시판 관련 컴포넌트
-│   ├── news/            # 뉴스 관련 컴포넌트
-│   ├── user/            # 사용자 관련 컴포넌트
-│   └── admin/           # 관리자 관련 컴포넌트
-├── pages/               # 페이지 컴포넌트
-├── hooks/               # 커스텀 훅
-├── services/            # API 서비스
-├── features/            # Redux 상태 관리
-├── utils/               # 유틸리티 함수
-├── styles/              # 스타일 파일
-├── assets/              # 정적 자원
-└── config/              # 설정 파일
+stockLounge-api/
+├── config/               # 환경설정 및 DB 설정 파일
+├── swagger/              # Swagger API 문서
+├── middlewares/          # 커스텀 미들웨어 (인증, 에러처리 등)
+├── models/               # Sequelize 모델 정의
+├── routes/               # API 라우터 정의
+├── passport/             # 로그인 관리
+├── uploads/              # 업로드 파일 저장소
+└── app.js                # 앱 진입점(Express 초기화)
 ```
 
 ## 🚀 시작하기
@@ -188,45 +172,60 @@ npm install
 ### 개발 서버 실행
 
 ```bash
-npm run dev
+npm start
 ```
 
-개발 서버가 http://localhost:5173 에서 실행됩니다.
-
-### 빌드
-
-```bash
-npm run build
-```
-
-### 미리보기
-
-```bash
-npm run preview
-```
+개발 서버가 http://localhost:8000 에서 실행됩니다.
 
 ## 🔧 환경 변수
 
 `.env` 파일을 생성하고 다음 환경 변수들을 설정하세요:
 
-```env
-# API 설정
-REACT_APP_API_BASE_URL=http://localhost:3001/api
-
-# Upbit API
-REACT_APP_UPBIT_ACCESS_KEY=your_access_key
-REACT_APP_UPBIT_SECRET_KEY=your_secret_key
-
-# 소셜 로그인
-REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
-REACT_APP_KAKAO_CLIENT_ID=your_kakao_client_id
+```#stocklounge-api .env 파일
+# 포트번호
+PORT=8000
+# 개발환경(development/test/production)
+NODE_ENV=development
+# 쿠키와 세션을 만들때 필요한 암호화 키(키 값은 자유롭게 작성가능)
+COOKIE_SECRET= test
+# 토근을 발급받을 때 필요한 암호화 키
+JWT_SECRET= test
+# DB정보
+# 개발용 DB
+DB_DEV_HOST=127.0.0.1
+DB_DEV_USERNAME=
+DB_DEV_PASSWORD=
+DB_DEV_DATABASE=stocklounge
+DB_DEV_DIALECT=mysql
+# 배포용 DB
+DB_PROD_HOST=
+DB_PROD_USER=
+DB_PROD_PASSWORD=
+DB_PROD_DATABASE=stocklounge
+DB_PROD_DIALECT=mysql
+# 테스트용 DB
+DB_TEST_HOST=
+DB_TEST_USERNAME=
+DB_TEST_PASSWORD=
+DB_TEST_NAME=
+DB_TEST_DIALECT=mysql
+# 프론트엔드 주소
+FRONTEND_APP_URL=http://localhost:5173
+# 백엔드 주소
+APP_API_URL=http://localhost:8000
+# 구글 로그인 api용
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=/api/auth/google/callback
+#카카오 로그인
+KAKAO_REST_API_KEY=
+KAKAO_REDIRECT_URI=http://localhost:8000/auth/kakao/callback
+KAKAO_CLIENT_ID=
+KAKAO_CALLBACK_URL=/api/auth/kakao/callback
+# 네이버 뉴스 api
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
 ```
-
-## 📱 반응형 지원
-
--  **Mobile**: 576px 미만
--  **Tablet**: 576px - 768px
--  **Desktop**: 768px 이상
 
 ## 🔗 API 연동
 
@@ -234,16 +233,67 @@ REACT_APP_KAKAO_CLIENT_ID=your_kakao_client_id
 -  **네이버 뉴스 API**: 경제/코인 뉴스
 -  **자체 백엔드 API**: 사용자, 게시판, 포인트 관리
 
-## 📋 개발 진행 상황
 
--  [x] 프로젝트 초기 설정
--  [x] 폴더 구조 생성
--  [x] 기본 컴포넌트 (Header, Footer, Layout)
--  [x] 홈페이지 기본 구조
--  [x] 로그인 모달 및 소셜 로그인 UI
--  [x] 차트 컴포넌트 기본 구조
--  [x] 게시글 카드 컴포넌트
--  [ ] API 연동
--  [ ] 상태관리 구현
--  [ ] 나머지 페이지 구현
--  [ ] 백엔드 연동
+
+## 역할 분배 (features)
+<table>
+  <tbody>
+    <tr>
+        <td align="center"><strong>기능분류</strong></td>
+        <td align="center"><strong>주요기능</strong></td>
+        <td align="center"><strong>담당자</strong></td>
+    </tr>
+    <tr>
+        <td align="center"><strong>게시판</strong></td>
+        <td align="center"><p>게시판 디자인, 글쓰기/수정/삭제, 댓글기능, 신고, 리워드 지급 등</p></td>
+        <td align="center"><p>박태민</p></td>
+    </tr>
+    <tr>
+        <td align="center"><strong>운영자 웹 관리</strong></td>
+        <td align="center"><p>운영자 대시보드, 통계, 유저관리, 게시판관리, 사이트 설정 변경 등</p></td>
+        <td align="center"><p>김동빈</p></td>
+    </tr>
+      <tr>
+        <td align="center"><strong>디자인, 소셜 로그인</strong></td>
+        <td align="center"><p>랜딩페이지, 메인 디자인, 소셜 로그인 기능</p></td>
+        <td align="center"><p>박인덕</p></td>
+    </tr>
+    <tr>
+        <td align="center"><strong>기타 api기능, 회원 관리</strong></td>
+        <td align="center"><p>내정보 페이지, 암호화폐 차트, 뉴스 페이지, 리워드 교환 등</p></td>
+        <td align="center"><p>박태민</p></td>
+    </tr>
+  </tbody>
+</table>
+
+<br/>
+
+
+## 4. 시스템 아키텍처 / ERD (Architecture & DB), 산출물
+<br />
+
+### [ERD](https://www.erdcloud.com/d/sDG9yZHxNvYYbMa48)
+### [화면설계](https://www.figma.com/design/lIGw8rfO0DfGPhIUJi2gjC/%ED%95%80%ED%85%8C%ED%81%AC-stitch-%EC%B4%88%EC%95%88?t=Hbr4TBLltxqahRL7-0)
+### [요구사항 정의서](https://docs.google.com/spreadsheets/d/1e_F76oiL1_Tdma-PvRcwCAWJWitBQBNvcZhi82afE0s/edit?gid=0#gid=0)
+### [WBS](https://docs.google.com/spreadsheets/d/1KV-lESuDaVaKC-IZv6Gfa_RTRahPvCvf/edit?gid=543982498#gid=543982498)
+
+
+### ERD
+<img width="792" height="529" alt="erd" src="https://github.com/user-attachments/assets/f1d9b4f4-0e02-4903-975f-cc6c3f97f184" />
+
+### 프로젝트 아키텍쳐
+<img width="1990" height="1100" alt="image" 
+src="https://github.com/user-attachments/assets/55b03951-472b-4124-b3ee-108e4bac4e1d" />
+
+
+----
+
+### 프로젝트 협업용 git
+<br />
+<a href="https://github.com/KimTyun/stockLounge-api">API git 링크</a>
+<br />
+<br />
+<a href="https://github.com/KimTyun/stockLounge-frontend">Frontend git 링크</a>
+<br />
+<br />
+<a href="https://github.com/KimTyun/stockLounge-recommend">recommend git 링크</a>
