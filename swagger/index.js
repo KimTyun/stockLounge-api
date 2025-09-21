@@ -1,4 +1,10 @@
 const newsPath = require('./path/news')
+const userPath = require('./path/user')
+const upbitPath = require('./path/upbit')
+const rewardPath = require('./path/reward')
+const reportPath = require('./path/report')
+const boardPath = require('./path/board')
+const authPath = require('./path/auth')
 
 const swaggerDocument = {
    openapi: '3.0.0',
@@ -14,6 +20,12 @@ const swaggerDocument = {
    ],
    paths: {
       ...newsPath,
+      ...userPath,
+      ...upbitPath,
+      ...rewardPath,
+      ...reportPath,
+      ...boardPath,
+      ...authPath,
    },
 }
 
