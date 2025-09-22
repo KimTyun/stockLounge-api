@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { User, Board, Ban, Product, Report, Sanction, Comment, Category, SiteSettings, Reward, ProductList } = require('../models')
+const { User, Board, Ban, Product, Report, Comment, Category, SiteSettings, Reward, ProductList } = require('../models')
 const { sequelize } = require('../models/index.js')
 const db = require('../models')
 const { isAdmin } = require('../middleware/middleware.js')
@@ -127,19 +127,24 @@ router.put('/user/:id/ban', async (req, res, next) => {
 
       if (!user) {
          await transaction.rollback()
-         const error = new Error('사용자를 찾을 수 없습니다.')
+         return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' })
       }
 
+      // 사용자 제재 상태 업데이트
       await user.update({ is_ban }, { transaction })
 
-      // 유저 밴 기록
+      // 유저 제재 기록 생성
       if (is_ban) {
-         await Sanction.create(
+         if (!req.user || !req.user.id) {
+            await transaction.rollback()
+            return res.status(401).json({ message: '관리자 인증이 필요합니다.' })
+         }
+
+         await Ban.create(
             {
-               type: 'ban',
-               reason: reason,
-               sanctionedUserId: user.id,
-               adminId: req.user.id,
+               pattern: 'user_ban', // 제재 유형 구분
+               description: reason, // 제재 사유
+               admin_id: req.user.id, // 제재한 관리자 ID
             },
             { transaction }
          )
@@ -169,6 +174,102 @@ router.delete('/user/:id', async (req, res, next) => {
       res.status(200).json({ message: '사용자가 성공적으로 삭제되었습니다.' })
    } catch (error) {
       await transaction.rollback()
+      next(error)
+   }
+})
+
+// 게시판 목록 조회
+router.get('/categories', async (req, res, next) => {
+   try {
+      const categories = await Category.findAll({ order: [['id', 'ASC']] })
+      res.status(200).json({ data: categories })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 게시판 생성
+router.post('/categories', async (req, res, next) => {
+   try {
+      const { category } = req.body // name → category
+      if (!category) return res.status(400).json({ message: '게시판 이름을 입력해주세요.' })
+
+      const newCategory = await Category.create({ category })
+      res.status(201).json({ data: newCategory })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 게시판 수정
+router.put('/categories/:id', async (req, res, next) => {
+   try {
+      const category = await Category.findByPk(req.params.id)
+      if (!category) return res.status(404).json({ message: '게시판을 찾을 수 없습니다.' })
+
+      await category.update({ category: req.body.category })
+      res.status(200).json({ data: category })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 게시판 삭제
+router.delete('/categories/:id', async (req, res, next) => {
+   try {
+      const result = await Category.destroy({ where: { id: req.params.id } })
+      if (!result) return res.status(404).json({ message: '게시판을 찾을 수 없습니다.' })
+      res.status(200).json({ message: '게시판이 삭제되었습니다.' })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 게시글 목록 조회
+router.get('/boards', async (req, res, next) => {
+   try {
+      const { page = 1, limit = 10, search = '' } = req.query
+      const offset = (page - 1) * limit
+
+      const whereCondition = { deleted_at: null }
+      if (search) {
+         whereCondition[Op.or] = [{ title: { [Op.like]: `%${search}%` } }, { content: { [Op.like]: `%${search}%` } }]
+      }
+
+      const { rows, count } = await Board.findAndCountAll({
+         where: whereCondition,
+         attributes: ['id', 'title', 'user_id', 'view_count', 'like_count', 'created_at', 'deleted_at'],
+         include: [{ model: User, attributes: ['name'], as: 'User' }],
+         order: [['created_at', 'DESC']],
+         limit: parseInt(limit, 10),
+         offset: parseInt(offset, 10),
+      })
+
+      res.status(200).json({
+         data: rows,
+         total: count,
+         page: parseInt(page, 10),
+         limit: parseInt(limit, 10),
+      })
+   } catch (error) {
+      next(error)
+   }
+})
+
+// 특정 게시글 삭제
+router.delete('/board/:id', async (req, res, next) => {
+   try {
+      const { id } = req.params
+      const board = await Board.findByPk(id)
+
+      if (!board) {
+         const error = new Error('게시글을 찾을 수 없습니다.')
+         return next(error)
+      }
+
+      await board.destroy()
+      res.status(200).json({ message: '게시글이 성공적으로 삭제되었습니다.' })
+   } catch (error) {
       next(error)
    }
 })
@@ -458,55 +559,6 @@ router.delete('/product-lists/:id', async (req, res, next) => {
          return res.status(404).json({ message: '상품 유형을 찾을 수 없습니다.' })
       }
       res.status(200).json({ message: '상품 유형이 삭제되었습니다.' })
-   } catch (error) {
-      next(error)
-   }
-})
-
-// 게시판 목록 조회
-router.get('/boards', async (req, res, next) => {
-   try {
-      const { page = 1, limit = 10, search = '' } = req.query
-      const offset = (page - 1) * limit
-
-      const whereCondition = { deleted_at: null }
-      if (search) {
-         whereCondition[Op.or] = [{ title: { [Op.like]: `%${search}%` } }, { content: { [Op.like]: `%${search}%` } }]
-      }
-
-      const { rows, count } = await Board.findAndCountAll({
-         where: whereCondition,
-         attributes: ['id', 'title', 'user_id', 'view_count', 'like_count', 'created_at', 'deleted_at'],
-         include: [{ model: User, attributes: ['name'], as: 'User' }],
-         order: [['created_at', 'DESC']],
-         limit: parseInt(limit, 10),
-         offset: parseInt(offset, 10),
-      })
-
-      res.status(200).json({
-         data: rows,
-         total: count,
-         page: parseInt(page, 10),
-         limit: parseInt(limit, 10),
-      })
-   } catch (error) {
-      next(error)
-   }
-})
-
-// 특정 게시글 삭제
-router.delete('/board/:id', async (req, res, next) => {
-   try {
-      const { id } = req.params
-      const board = await Board.findByPk(id)
-
-      if (!board) {
-         const error = new Error('게시글을 찾을 수 없습니다.')
-         return next(error)
-      }
-
-      await board.destroy()
-      res.status(200).json({ message: '게시글이 성공적으로 삭제되었습니다.' })
    } catch (error) {
       next(error)
    }
