@@ -130,7 +130,7 @@ router.put('/user/:id/ban', async (req, res, next) => {
          return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' })
       }
 
-      // 사용자 제재 상태 업데이트
+      // 사용자 제재 상태 갱신
       await user.update({ is_ban }, { transaction })
 
       // 유저 제재 기록 생성
