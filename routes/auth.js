@@ -54,7 +54,7 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
       <script>
          window.opener.postMessage(
             { success: true, provider: 'google', redirectUrl: '/' }, 
-            'http://localhost:5173'
+            'VITE_API_URL'
          );
          window.close();
       </script>
@@ -69,7 +69,7 @@ router.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: 
       <script>
          window.opener.postMessage(
             { success: true, provider: 'kakao', redirectUrl: '/' }, 
-            'http://localhost:5173'
+            'VITE_API_URL'
          );
          window.close();
       </script>
