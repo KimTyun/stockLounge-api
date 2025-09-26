@@ -50,30 +50,16 @@ router.post('/logout', isLoggedIn, (req, res, next) => {
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
 
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
-   res.send(`
-      <script>
-         window.opener.postMessage(
-            { success: true, provider: 'google', redirectUrl: '/' }, 
-            'http://localhost:5173'
-         );
-         window.close();
-      </script>
-   `)
+   // 인증 성공 시 프론트엔드 도메인으로 리다이렉트
+   res.redirect(process.env.FRONTEND_APP_URL)
 })
 
+// --- 카카오 라우트 ---
 router.get('/kakao', passport.authenticate('kakao'))
 
-// --- 카카오 콜백 ---
 router.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: '/login' }), (req, res) => {
-   res.send(`
-      <script>
-         window.opener.postMessage(
-            { success: true, provider: 'kakao', redirectUrl: '/' }, 
-            'http://localhost:5173'
-         );
-         window.close();
-      </script>
-   `)
+   // 카카오도 팝업 대신 프론트엔드로 바로 리다이렉트
+   res.redirect(process.env.FRONTEND_APP_URL)
 })
 
 module.exports = router
