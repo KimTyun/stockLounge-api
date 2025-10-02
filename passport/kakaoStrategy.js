@@ -1,5 +1,6 @@
 require('dotenv').config()
 const KakaoStrategy = require('passport-kakao').Strategy
+const { sequelize } = require('../models')
 const User = require('../models/user')
 const passport = require('passport')
 
