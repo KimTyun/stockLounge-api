@@ -25,6 +25,7 @@ module.exports = () => {
                })
 
                if (existingUser) {
+                  transaction.commit()
                   return done(null, existingUser)
                }
                const newUser = await User.create(
