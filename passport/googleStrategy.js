@@ -19,7 +19,7 @@ module.exports = () => {
                const existingUser = await User.findOne({
                   where: {
                      provider: 'GOOGLE',
-                     email: profile?.emails[0]?.value,
+                     provide_Id: profile.id,
                   },
                   transaction,
                })
@@ -31,6 +31,7 @@ module.exports = () => {
                const newUser = await User.create(
                   {
                      email: profile?.emails[0]?.value,
+                     provide_Id: profile.id,
                      name: profile.displayName,
                      profile_img: profile?.photos[0]?.value,
                      provider: 'GOOGLE',

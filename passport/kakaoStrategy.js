@@ -1,6 +1,6 @@
 require('dotenv').config()
 const KakaoStrategy = require('passport-kakao').Strategy
-const { sequelize } = require('../models')
+const { sequelize, Reward, RewardRecord } = require('../models')
 const User = require('../models/user')
 const passport = require('passport')
 
@@ -22,7 +22,7 @@ module.exports = () => {
                const existingUser = await User.findOne({
                   where: {
                      provider: 'KAKAO',
-                     email: profile._json?.kakao_account?.email,
+                     provide_Id: profile.id,
                   },
                   transaction,
                })
@@ -37,6 +37,7 @@ module.exports = () => {
                const newUser = await User.create(
                   {
                      email: profile._json?.kakao_account?.email || 'null',
+                     provide_Id: profile.id,
                      name: profile.displayName,
                      profile_img: profile._json?.properties?.profile_image,
                      provider: 'KAKAO',

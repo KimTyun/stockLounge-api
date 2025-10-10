@@ -35,6 +35,10 @@ module.exports = class User extends Sequelize.Model {
                type: DataTypes.ENUM('KAKAO', 'GOOGLE'),
                allowNull: false,
             },
+            provide_Id: {
+               type: DataTypes.STRING,
+               allowNull: true,
+            },
             profile_img: {
                type: DataTypes.TEXT,
                allowNull: true,
