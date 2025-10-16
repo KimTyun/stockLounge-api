@@ -46,19 +46,17 @@ router.post('/logout', isLoggedIn, (req, res, next) => {
    }
 })
 
-// --- 구글 라우트 ---
+// 구글
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
 
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
-   // 인증 성공 시 프론트엔드 도메인으로 리다이렉트
    res.redirect(process.env.FRONTEND_APP_URL)
 })
 
-// --- 카카오 라우트 ---
+// 카카오
 router.get('/kakao', passport.authenticate('kakao'))
 
 router.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: '/login' }), (req, res) => {
-   // 카카오도 팝업 대신 프론트엔드로 바로 리다이렉트
    res.redirect(process.env.FRONTEND_APP_URL)
 })
 
