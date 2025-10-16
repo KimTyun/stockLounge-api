@@ -45,7 +45,7 @@ app.use(
 passportConfig()
 
 sequelize
-   .sync({ force: false, alter: false })
+   .sync({ force: false, alter: true })
    .then(() => {
       console.log('DB 연결 및 모델 동기화 완료')
    })

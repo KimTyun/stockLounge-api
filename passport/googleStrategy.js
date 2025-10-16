@@ -19,17 +19,19 @@ module.exports = () => {
                const existingUser = await User.findOne({
                   where: {
                      provider: 'GOOGLE',
-                     email: profile?.emails[0]?.value,
+                     provide_Id: profile.id,
                   },
                   transaction,
                })
 
                if (existingUser) {
+                  transaction.commit()
                   return done(null, existingUser)
                }
                const newUser = await User.create(
                   {
                      email: profile?.emails[0]?.value,
+                     provide_Id: profile.id,
                      name: profile.displayName,
                      profile_img: profile?.photos[0]?.value,
                      provider: 'GOOGLE',
