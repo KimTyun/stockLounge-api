@@ -1,32 +1,30 @@
-const mysql = require(`mysql2`)
+const { Pool } = require('pg')
 const dotenv = require('dotenv')
 
 dotenv.config()
 
-const tempdb = mysql.createPool({
-   host: process.env.DB_DEV_HOST,
-   user: process.env.DB_DEV_USERNAME,
-   password: process.env.DB_DEV_PASSWORD,
-   database: process.env.DB_DEV_DATABASE,
-   port: process.env.DB_DEV_PORT,
-   waitForConnections: true,
-   connectionLimit: 10,
-   queueLimit: 0,
+const pool = new Pool({
+   host: process.env.DB_PROD_HOST,
+   user: process.env.DB_PROD_USER,
+   password: process.env.DB_PROD_PASSWORD,
+   database: process.env.DB_PROD_DATABASE,
+   port: process.env.DB_PROD_PORT || 5432,
+   ssl: {
+      require: true,
+      rejectUnauthorized: false,
+   },
 })
 
-// 프로미스 기반으로 쿼리 실행 함수를 래핑
-const promisePool = tempdb.promise()
-
-// 연결확인
-promisePool
-   .getConnection()
-   .then((connection) => {
-      console.log('StockLounge: MySQL 데이터베이스 연결에 성공했습니다.')
-      connection.release()
+// 연결 확인
+pool
+   .connect()
+   .then((client) => {
+      console.log('StockLounge: PostgreSQL 연결 성공')
+      client.release()
    })
    .catch((err) => {
-      console.error('StockLounge: MySQL 연결 실패', err.message)
+      console.error('StockLounge: PostgreSQL 연결 실패', err.message)
       process.exit(1)
    })
 
-module.exports = promisePool
+module.exports = pool
