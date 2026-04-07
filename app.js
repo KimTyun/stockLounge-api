@@ -1,28 +1,13 @@
 const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
+const { sequelize } = require('./models')
 const session = require('express-session')
 const fs = require('fs')
 const dotenv = require('dotenv')
-dotenv.config()
-
-// 일부 호스팅(Render 등)에서 IPv6 outbound 문제로 DB 연결이 실패할 수 있어
-// 필요 시 IPv4를 우선하도록 DNS 결과 순서를 강제합니다.
-try {
-   const dns = require('dns')
-   const forceIpv4 = ['DB_PROD_FORCE_IPV4', 'DB_FORCE_IPV4', 'DB_DEV_FORCE_IPV4']
-      .map((key) => String(process.env[key]).toLowerCase())
-      .includes('true')
-   if (forceIpv4 && typeof dns.setDefaultResultOrder === 'function') {
-      dns.setDefaultResultOrder('ipv4first')
-   }
-} catch (e) {
-   // ignore
-}
-
-const { sequelize } = require('./models')
 const path = require('path')
 const morgan = require('morgan')
+dotenv.config()
 const passport = require('passport')
 const passportConfig = require('./passport')
 const swaggerDocument = require('./swagger')
@@ -37,7 +22,7 @@ const PORT = process.env.PORT || 8000
 //공용 미들웨어
 app.use(
    cors({
-      origin: process.env.FRONTEND_APP_URL, // 특정 주소만 request 허용
+      origin: process.env.FRONTEND_URL, // 특정 주소만 request 허용
       credentials: true, // 쿠키, 세션 등 인증 정보 허용
    }),
    express.json(),
