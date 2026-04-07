@@ -198,6 +198,16 @@ DB_PROD_PASSWORD=
 DB_PROD_DATABASE=stocklounge
 DB_PROD_PORT=5432
 DB_PROD_DIALECT=postgres
+
+# Sequelize 동기화(운영 주의)
+# Render free tier처럼 재시작/웨이크업이 잦은 환경에서 `sequelize.sync({ alter: true })`는
+# 부팅 시간을 크게 늘릴 수 있어 production에서는 기본적으로 sync를 실행하지 않습니다.
+# 운영에서 스키마 동기화가 꼭 필요할 때만 아래 값을 명시적으로 설정하세요.
+DB_SYNC=false
+# (선택) production에서 sync 실행 시 alter 옵션
+DB_SYNC_ALTER=false
+# (매우 위험) true면 테이블을 드랍/재생성할 수 있음
+DB_SYNC_FORCE=false
 # 테스트용 DB
 DB_TEST_HOST=
 DB_TEST_USERNAME=

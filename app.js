@@ -13,6 +13,8 @@ const passportConfig = require('./passport')
 const swaggerDocument = require('./swagger')
 const swaggerUi = require('swagger-ui-express')
 
+const env = process.env.NODE_ENV || 'development'
+
 const normalizeOrigin = (value) => {
    if (!value) return null
    try {
@@ -75,15 +77,40 @@ app.use(
 )
 passportConfig()
 
-sequelize
-   .sync({ force: false, alter: true })
-   .then(() => {
-      console.log('DB 연결 및 모델 동기화 완료')
-   })
-   .catch((error) => {
+const asBool = (value) => String(value).toLowerCase() === 'true'
+
+const shouldSync = () => {
+   // Render free tier처럼 재시작/웨이크업이 잦은 환경에서는 sync(alter/force)가 큰 지연을 유발할 수 있어,
+   // production에서는 기본적으로 sync를 비활성화합니다.
+   if (env === 'production') return asBool(process.env.DB_SYNC)
+   return true
+}
+
+const getSyncOptions = () => {
+   // 기본값: development/test는 alter로 편하게 개발, production은 DB_SYNC=true로 opt-in했을 때만 실행.
+   // DB_SYNC_FORCE는 매우 위험(테이블 드랍)하니 명시적으로 true인 경우에만 적용.
+   const alter = env !== 'production' ? true : asBool(process.env.DB_SYNC_ALTER)
+   const force = asBool(process.env.DB_SYNC_FORCE)
+   return { alter, force }
+}
+
+const initDatabase = async () => {
+   try {
+      await sequelize.authenticate()
+      console.log('DB 연결 완료')
+
+      if (shouldSync()) {
+         const syncOptions = getSyncOptions()
+         await sequelize.sync(syncOptions)
+         console.log('DB 모델 동기화 완료', syncOptions)
+      } else {
+         console.log('DB 모델 동기화 생략 (production 기본값)')
+      }
+   } catch (error) {
       console.error('DB 연결 실패:', error)
-      process.exit(1) // DB 연결 실패 시 서버 종료
-   })
+      process.exit(1)
+   }
+}
 
 // uploads 폴더가 없을 경우 새로 생성
 try {
@@ -150,8 +177,10 @@ app.use((err, req, res, next) => {
 })
 
 // 서버 실행
-app.listen(PORT, () => {
-   console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`)
-   console.log(`환경: ${process.env.NODE_ENV || 'development'}`)
-   console.log(`CORS 허용 주소: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`)
+initDatabase().then(() => {
+   app.listen(PORT, () => {
+      console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`)
+      console.log(`환경: ${env}`)
+      console.log(`CORS 허용 주소: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`)
+   })
 })
