@@ -40,7 +40,7 @@ app.use(
       },
    }),
    passport.initialize(),
-   passport.session()
+   passport.session(),
 )
 passportConfig()
 
