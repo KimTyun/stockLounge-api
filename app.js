@@ -13,6 +13,27 @@ const passportConfig = require('./passport')
 const swaggerDocument = require('./swagger')
 const swaggerUi = require('swagger-ui-express')
 
+const normalizeOrigin = (value) => {
+   if (!value) return null
+   try {
+      return new URL(value).origin
+   } catch {
+      return String(value).replace(/\/+$/, '')
+   }
+}
+
+const parseOriginList = (value) =>
+   String(value || '')
+      .split(',')
+      .map((v) => normalizeOrigin(v.trim()))
+      .filter(Boolean)
+
+const allowedOrigins = new Set([...parseOriginList(process.env.FRONTEND_URL), ...parseOriginList(process.env.FRONTEND_APP_URL), ...parseOriginList(process.env.CORS_ORIGINS)])
+
+// Vercel preview 도메인(배포마다 suffix가 붙는 형태)까지 허용
+// 예: https://stock-lounge-frontend-xxxx.vercel.app
+const vercelPreviewRegex = /^https:\/\/stock-lounge-frontend(?:-[a-z0-9-]+)?\.vercel\.app$/i
+
 // DB 연결 모듈 불러오기 (연결 상태 확인 목적)
 // const db = require('./config/db') // 사용하지 않으면 주석 처리
 
@@ -22,8 +43,18 @@ const PORT = process.env.PORT || 8000
 //공용 미들웨어
 app.use(
    cors({
-      origin: process.env.FRONTEND_URL, // 특정 주소만 request 허용
+      origin: (origin, callback) => {
+         // same-origin / server-to-server / curl 등 Origin이 없는 케이스 허용
+         if (!origin) return callback(null, true)
+
+         const normalized = normalizeOrigin(origin)
+         if (allowedOrigins.has(normalized)) return callback(null, true)
+         if (vercelPreviewRegex.test(normalized)) return callback(null, true)
+
+         return callback(new Error(`CORS blocked origin: ${origin}`))
+      },
       credentials: true, // 쿠키, 세션 등 인증 정보 허용
+      optionsSuccessStatus: 204,
    }),
    express.json(),
    express.urlencoded({ extended: false }),
