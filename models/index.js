@@ -6,7 +6,10 @@ const config = require('../config/config')[env]
 
 const db = {}
 
-const sequelize = new Sequelize(config.database, config.username, config.password, { ...config, logging: process.env.NODE_ENV === 'development' ? false : console.log })
+const { url, username, password, database, ...sequelizeOptions } = config
+const logging = process.env.NODE_ENV === 'development' ? false : console.log
+
+const sequelize = url ? new Sequelize(url, { ...sequelizeOptions, logging }) : new Sequelize(database, username, password, { ...sequelizeOptions, logging })
 
 const User = require('./user')
 const Board = require('./board')
