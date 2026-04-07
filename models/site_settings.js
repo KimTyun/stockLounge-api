@@ -20,9 +20,7 @@ module.exports = class SiteSettings extends Sequelize.Model {
             underscored: true,
             modelName: 'SiteSettings',
             tableName: 'site_settings',
-            charset: 'utf8mb4',
-            collate: 'utf8mb4_general_ci',
-         }
+         },
       )
    }
 }

@@ -41,9 +41,7 @@ module.exports = class Product extends Sequelize.Model {
             underscored: true,
             modelName: 'Product',
             tableName: 'product',
-            charset: 'utf8mb4',
-            collate: 'utf8mb4_general_ci',
-         }
+         },
       )
    }
    static associate(db) {

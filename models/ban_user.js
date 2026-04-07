@@ -28,9 +28,7 @@ module.exports = class BanUser extends Sequelize.Model {
             underscored: true,
             modelName: 'BanUser',
             tableName: 'ban_user',
-            charset: 'utf8mb4',
-            collate: 'utf8mb4_general_ci',
-         }
+         },
       )
    }
    static associate(db) {

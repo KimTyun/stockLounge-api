@@ -32,9 +32,7 @@ module.exports = class RewardRecord extends Sequelize.Model {
             modelName: 'RewardRecord',
             tableName: 'reward_records',
             paranoid: true,
-            charset: 'utf8mb4',
-            collate: 'utf8mb4_general_ci',
-         }
+         },
       )
    }
 

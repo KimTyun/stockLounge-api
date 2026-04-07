@@ -35,9 +35,7 @@ module.exports = class ProductList extends Sequelize.Model {
             underscored: true,
             modelName: 'ProductList',
             tableName: 'product_list',
-            charset: 'utf8mb4',
-            collate: 'utf8mb4_general_ci',
-         }
+         },
       )
    }
 

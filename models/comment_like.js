@@ -30,15 +30,13 @@ module.exports = class CommentLike extends Sequelize.Model {
             underscored: true,
             modelName: 'CommentLike',
             tableName: 'comment_likes',
-            charset: 'utf8mb4',
-            collate: 'utf8mb4_general_ci',
             indexes: [
                {
                   unique: true,
                   fields: ['comment_id', 'user_id'], // 중복 좋아요 방지
                },
             ],
-         }
+         },
       )
    }
 
